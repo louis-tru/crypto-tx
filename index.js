@@ -125,19 +125,6 @@ function ecdh(publicKeyA, privateKeyB) {
 	return secp256k1.ecdh(publicKeyA, privateKeyB);
 }
 
-function getCryptoSubtleAes(op) {
-	return async function(iv, key, data) {
-		assert.isBuffer(iv, 'Bad aes iv');
-		assert.isBuffer(key, 'Bad aes key');
-		assert.isBuffer(data, 'Bad aes data');
-		var algorithm = { name: 'AES-CBC' };
-		var cryptoKey = await subtle.importKey('raw', key, algorithm, false, [op]);
-		var encAlgorithm = { name: 'AES-CBC', iv: iv };
-		var result = await subtle[op](encAlgorithm, cryptoKey, data);
-		return Buffer.from(new Uint8Array(result));
-	}
-}
-
 function sha512(msg) {
 	if (crypto) {
 		return crypto.createHash("sha512").update(msg).digest();
@@ -151,6 +138,19 @@ function hmacSha256(key, msg) {
 		return crypto.createHmac('sha256', key).update(msg).digest();
 	} else {
 		return hash_js.hmac(hash_js.sha256, key).update(msg).digest();
+	}
+}
+
+function getCryptoSubtleAes(op) {
+	return async function(iv, key, data) {
+		assert.isBuffer(iv, 'Bad AES iv');
+		assert.isBuffer(key, 'Bad AES key');
+		assert.isBuffer(data, 'Bad AES data');
+		var algorithm = { name: 'AES-CBC' };
+		var cryptoKey = await subtle.importKey('raw', key, algorithm, false, [op]);
+		var encAlgorithm = { name: 'AES-CBC', iv: iv };
+		var result = await subtle[op](encAlgorithm, cryptoKey, data);
+		return Buffer.from(new Uint8Array(result));
 	}
 }
 
