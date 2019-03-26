@@ -28,20 +28,182 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var secp256k1 = require('./secp256k1');
 var assert = require('assert');
-var rlp = require('./rlp');
+var secp256k1 = require('./secp256k1');
+var { Buffer } = require('buffer');
 var BN = require('bn.js');
 var { keccak } = require("./keccak");
 
-var _typeof = (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") ? 
-function (obj) { return typeof obj; } :
-function (obj) {
-	return (
-		obj && typeof Symbol === "function" && 
-		obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj
-	);
-};
+/**
+ * RLP Encoding based on: https://github.com/ethereum/wiki/wiki/%5BEnglish%5D-RLP
+ * This function takes in a data, convert it to buffer if not, and a length for recursion
+ *
+ * @param {Buffer,String,Integer,Array} data - will be converted to buffer
+ * @returns {Buffer} - returns buffer of encoded data
+ **/
+function rlp_encode(input) {
+	if (input instanceof Array) {
+		var output = []
+		for (var i = 0; i < input.length; i++) {
+			output.push(rlp_encode(input[i]))
+		}
+		var buf = Buffer.concat(output)
+		return Buffer.concat([rlp_encodeLength(buf.length, 192), buf])
+	} else {
+		input = toBuffer(input)
+		if (input.length === 1 && input[0] < 128) {
+			return input
+		} else {
+			return Buffer.concat([rlp_encodeLength(input.length, 128), input])
+		}
+	}
+}
+
+/**
+ * RLP Decoding based on: {@link https://github.com/ethereum/wiki/wiki/%5BEnglish%5D-RLP|RLP}
+ * @param {Buffer,String,Integer,Array} data - will be converted to buffer
+ * @returns {Array} - returns decode Array of Buffers containg the original message
+ **/
+function rlp_decode(input, stream) {
+	if (!input || input.length === 0) {
+		return Buffer.from([])
+	}
+
+	input = toBuffer(input)
+	var decoded = _rlp_decode(input)
+
+	if (stream) {
+		return decoded
+	}
+
+	assert.equal(decoded.remainder.length, 0, 'invalid remainder')
+	return decoded.data
+}
+
+function _rlp_decode (input) {
+	var length, llength, data, innerRemainder, d
+	var decoded = []
+	var firstByte = input[0]
+
+	if (firstByte <= 0x7f) {
+		// a single byte whose value is in the [0x00, 0x7f] range, that byte is its own RLP encoding.
+		return {
+			data: input.slice(0, 1),
+			remainder: input.slice(1)
+		}
+	} else if (firstByte <= 0xb7) {
+		// string is 0-55 bytes long. A single byte with value 0x80 plus the length of the string followed by the string
+		// The range of the first byte is [0x80, 0xb7]
+		length = firstByte - 0x7f
+
+		// set 0x80 null to 0
+		if (firstByte === 0x80) {
+			data = Buffer.from([])
+		} else {
+			data = input.slice(1, length)
+		}
+
+		if (length === 2 && data[0] < 0x80) {
+			throw new Error('invalid rlp encoding: byte must be less 0x80')
+		}
+
+		return {
+			data: data,
+			remainder: input.slice(length)
+		}
+	} else if (firstByte <= 0xbf) {
+		llength = firstByte - 0xb6
+		length = safeParseInt(input.slice(1, llength).toString('hex'), 16)
+		data = input.slice(llength, length + llength)
+		if (data.length < length) {
+			throw (new Error('invalid RLP'))
+		}
+
+		return {
+			data: data,
+			remainder: input.slice(length + llength)
+		}
+	} else if (firstByte <= 0xf7) {
+		// a list between  0-55 bytes long
+		length = firstByte - 0xbf
+		innerRemainder = input.slice(1, length)
+		while (innerRemainder.length) {
+			d = _rlp_decode(innerRemainder)
+			decoded.push(d.data)
+			innerRemainder = d.remainder
+		}
+
+		return {
+			data: decoded,
+			remainder: input.slice(length)
+		}
+	} else {
+		// a list  over 55 bytes long
+		llength = firstByte - 0xf6
+		length = safeParseInt(input.slice(1, llength).toString('hex'), 16)
+		var totalLength = llength + length
+		if (totalLength > input.length) {
+			throw new Error('invalid rlp: total length is larger than the data')
+		}
+
+		innerRemainder = input.slice(llength, totalLength)
+		if (innerRemainder.length === 0) {
+			throw new Error('invalid rlp, List has a invalid length')
+		}
+
+		while (innerRemainder.length) {
+			d = _rlp_decode(innerRemainder)
+			decoded.push(d.data)
+			innerRemainder = d.remainder
+		}
+		return {
+			data: decoded,
+			remainder: input.slice(totalLength)
+		}
+	}
+}
+
+function rlp_encodeLength (len, offset) {
+	if (len < 56) {
+		return Buffer.from([len + offset])
+	} else {
+		var hexLength = intToHex(len)
+		var lLength = hexLength.length / 2
+		var firstByte = intToHex(offset + 55 + lLength)
+		return Buffer.from(firstByte + hexLength, 'hex')
+	}
+}
+
+function rlp_getLength(input) {
+	if (!input || input.length === 0) {
+		return Buffer.from([])
+	}
+
+	input = toBuffer(input)
+	var firstByte = input[0]
+	if (firstByte <= 0x7f) {
+		return input.length
+	} else if (firstByte <= 0xb7) {
+		return firstByte - 0x7f
+	} else if (firstByte <= 0xbf) {
+		return firstByte - 0xb6
+	} else if (firstByte <= 0xf7) {
+		// a list between  0-55 bytes long
+		return firstByte - 0xbf
+	} else {
+		// a list  over 55 bytes long
+		var llength = firstByte - 0xf6
+		var length = safeParseInt(input.slice(1, llength).toString('hex'), 16)
+		return llength + length
+	}
+}
+
+function safeParseInt (v, base) {
+	if (v.slice(0, 2) === '00') {
+		throw (new Error('invalid RLP: extra zeros'))
+	}
+	return parseInt(v, base)
+}
 
 /**
  * Creates Keccak hash of the input
@@ -49,21 +211,21 @@ function (obj) {
  * @param {Number} [bits=256] the Keccak width
  * @return {Buffer}
  */
-exports.keccak = function(a, bits) {
-	a = exports.toBuffer(a);
+function keccak(a, bits) {
+	a = toBuffer(a);
 	if (!bits) bits = 256;
 
 	return new Buffer(keccak(a, bits).data);
-};
+}
 
 /**
  * Creates SHA-3 hash of the RLP encoded version of the input
  * @param {Buffer|Array|String|Number} a the input data
  * @return {Buffer}
  */
-exports.rlphash = function(a) {
-	return exports.keccak(rlp.encode(a));
-};
+function rlphash(a) {
+	return keccak(rlp_encode(a));
+}
 
 /**
  * ECDSA sign
@@ -71,7 +233,7 @@ exports.rlphash = function(a) {
  * @param {Buffer} privateKey
  * @return {Object}
  */
-exports.ecsign = function(msgHash, privateKey) {
+function ecsign(msgHash, privateKey) {
 	var sig = secp256k1.sign(msgHash, privateKey);
 
 	var ret = {};
@@ -79,7 +241,7 @@ exports.ecsign = function(msgHash, privateKey) {
 	ret.s = sig.signature.slice(32, 64);
 	ret.v = sig.recovery + 27;
 	return ret;
-};
+}
 
 /**
  * ECDSA public key recovery from signature
@@ -89,15 +251,15 @@ exports.ecsign = function(msgHash, privateKey) {
  * @param {Buffer} s
  * @return {Buffer} publicKey
  */
-exports.ecrecover = function(msgHash, v, r, s) {
-	var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64);
+function ecrecover(msgHash, v, r, s) {
+	var signature = Buffer.concat([setLength(r, 32), setLength(s, 32)], 64);
 	var recovery = v - 27;
 	if (recovery !== 0 && recovery !== 1) {
 		throw new Error('Invalid signature v value');
 	}
 	var senderPubKey = secp256k1.recover(msgHash, signature, recovery);
 	return secp256k1.publicKeyConvert(senderPubKey, false).slice(1);
-};
+}
 
 /**
  * Returns the ethereum address of a given public key.
@@ -106,15 +268,15 @@ exports.ecrecover = function(msgHash, v, r, s) {
  * @param {Boolean} [sanitize=false] Accept public keys in other formats
  * @return {Buffer}
  */
-exports.pubToAddress = exports.publicToAddress = function(pubKey, sanitize) {
-	pubKey = exports.toBuffer(pubKey);
+function publicToAddress(pubKey, sanitize) {
+	pubKey = toBuffer(pubKey);
 	if (sanitize && pubKey.length !== 64) {
 		pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1);
 	}
 	assert(pubKey.length === 64);
 	// Only take the lower 160bits of the hash
-	return exports.keccak(pubKey).slice(-20);
-};
+	return keccak(pubKey).slice(-20);
+}
 
 /**
  * Returns a buffer filled with 0s
@@ -122,9 +284,9 @@ exports.pubToAddress = exports.publicToAddress = function(pubKey, sanitize) {
  * @param {Number} bytes  the number of bytes the buffer should be
  * @return {Buffer}
  */
-exports.zeros = function(bytes) {
+function zeros(bytes) {
 	return Buffer.allocUnsafe(bytes).fill(0);
-};
+}
 
 /**
  * Left Pads an `Array` or `Buffer` with leading zeros till it has `length` bytes.
@@ -135,9 +297,9 @@ exports.zeros = function(bytes) {
  * @param {Boolean} [right=false] whether to start padding form the left or right
  * @return {Buffer|Array}
  */
-exports.setLengthLeft = exports.setLength = function(msg, length, right) {
-	var buf = exports.zeros(length);
-	msg = exports.toBuffer(msg);
+function setLength(msg, length, right) {
+	var buf = zeros(length);
+	msg = toBuffer(msg);
 	if (right) {
 		if (msg.length < length) {
 			msg.copy(buf);
@@ -151,7 +313,7 @@ exports.setLengthLeft = exports.setLength = function(msg, length, right) {
 		}
 		return msg.slice(-length);
 	}
-};
+}
 
 /**
  * Converts a `Buffer` to a `Number`
@@ -159,9 +321,9 @@ exports.setLengthLeft = exports.setLength = function(msg, length, right) {
  * @return {Number}
  * @throws If the input number exceeds 53 bits.
  */
-exports.bufferToInt = function (buf) {
-	return new BN(exports.toBuffer(buf)).toNumber();
-};
+function bufferToInt(buf) {
+	return new BN(toBuffer(buf)).toNumber();
+}
 
 /**
  * Returns a `Boolean` on whether or not the a `String` starts with '0x'
@@ -169,7 +331,7 @@ exports.bufferToInt = function (buf) {
  * @return {Boolean} a boolean if it is or is not hex prefixed
  * @throws if the str input is not a string
  */
-exports.isHexPrefixed = function(str) {
+function isHexPrefixed(str) {
 	if (typeof str !== 'string') {
 		throw new Error("[is-hex-prefixed] value must be type 'string', is currently type " + 
 			(typeof str) + ", while checking isHexPrefixed.");
@@ -183,12 +345,12 @@ exports.isHexPrefixed = function(str) {
  * @param {String} str the string value
  * @return {String|Optional} a string by pass if necessary
  */
-exports.stripHexPrefix = function(str) {
+function stripHexPrefix(str) {
 	if (typeof str !== 'string') {
 		return str;
 	}
 
-	return exports.isHexPrefixed(str) ? str.slice(2) : str;
+	return isHexPrefixed(str) ? str.slice(2) : str;
 }
 
 /**
@@ -196,7 +358,7 @@ exports.stripHexPrefix = function(str) {
  * @param {String} value
  * @return {String} output
  */
-exports.padToEven = function(value) {
+function padToEven(value) {
 	var a = value; // eslint-disable-line
 
 	if (typeof a !== 'string') {
@@ -219,7 +381,7 @@ exports.padToEven = function(value) {
  * @param {Number} length
  * @returns {Boolean} output the string is a hex string
  */
-exports.isHexString = function(value, length) {
+function isHexString(value, length) {
 	if (typeof(value) !== 'string' || !value.match(/^0x[0-9A-Fa-f]*$/)) {
 		return false;
 	}
@@ -234,18 +396,18 @@ exports.isHexString = function(value, length) {
  * `Number`, null/undefined, `BN` and other objects with a `toArray()` method.
  * @param {*} v the value
  */
-exports.toBuffer = function(v) {
+function toBuffer(v) {
 	if (!Buffer.isBuffer(v)) {
 		if (Array.isArray(v)) {
 			v = Buffer.from(v);
 		} else if (typeof v === 'string') {
-			if (exports.isHexString(v)) {
-				v = Buffer.from(exports.padToEven(exports.stripHexPrefix(v)), 'hex');
+			if (isHexString(v)) {
+				v = Buffer.from(padToEven(stripHexPrefix(v)), 'hex');
 			} else {
 				v = Buffer.from(v);
 			}
 		} else if (typeof v === 'number') {
-			v = exports.intToBuffer(v);
+			v = intToBuffer(v);
 		} else if (v === null || v === undefined) {
 			v = Buffer.allocUnsafe(0);
 		} else if (BN.isBN(v)) {
@@ -258,46 +420,46 @@ exports.toBuffer = function(v) {
 		}
 	}
 	return v;
-};
+}
 
 /**
  * Converts a `Buffer` or `Array` to JSON
  * @param {Buffer|Array} ba
  * @return {Array|String|null}
  */
-exports.baToJSON = function (ba) {
+function baToJSON(ba) {
 	if (Buffer.isBuffer(ba)) {
 		return '0x' + ba.toString('hex');
 	} else if (ba instanceof Array) {
 		var array = [];
 		for (var i = 0; i < ba.length; i++) {
-			array.push(exports.baToJSON(ba[i]));
+			array.push(baToJSON(ba[i]));
 		}
 		return array;
 	}
-};
+}
 
 /**
  * Trims leading zeros from a `Buffer` or an `Array`
  * @param {Buffer|Array|String} a
  * @return {Buffer|Array|String}
  */
-exports.unpad = exports.stripZeros = function (a) {
-	a = exports.stripHexPrefix(a);
+function stripZeros(a) {
+	a = stripHexPrefix(a);
 	var first = a[0];
 	while (a.length > 0 && first.toString() === '0') {
 		a = a.slice(1);
 		first = a[0];
 	}
 	return a;
-};
+}
 
 /**
  * Converts a `Number` into a hex `String`
  * @param {Number} i
  * @return {String}
  */
-exports.intToHex = function(i) {
+function intToHex(i) {
 	var hex = i.toString(16); // eslint-disable-line
 	return '0x' + hex;
 }
@@ -307,115 +469,29 @@ exports.intToHex = function(i) {
  * @param {Number} i
  * @return {Buffer}
  */
-exports.intToBuffer = function(i) {
-	var hex = exports.intToHex(i);
-	return new Buffer(exports.padToEven(hex.slice(2)), 'hex');
+function intToBuffer(i) {
+	var hex = intToHex(i);
+	return new Buffer(padToEven(hex.slice(2)), 'hex');
 }
 
-/**
- * Defines properties on a `Object`. It make the assumption that underlying data is binary.
- * @param {Object} self the `Object` to define properties on
- * @param {Array} fields an array fields to define. Fields can contain:
- * * `name` - the name of the properties
- * * `length` - the number of bytes the field can have
- * * `allowLess` - if the field can be less than the length
- * * `allowEmpty`
- * @param {*} data data to be validated against the definitions
- */
-exports.defineProperties = function (self, fields, data) {
-	self.raw = [];
-	self._fields = [];
-
-	// attach the `toJSON`
-	self.toJSON = function (label) {
-		if (label) {
-			var obj = {};
-			self._fields.forEach(function (field) {
-				obj[field] = '0x' + self[field].toString('hex');
-			});
-			return obj;
-		}
-		return exports.baToJSON(this.raw);
-	};
-
-	self.serialize = function serialize() {
-		return rlp.encode(self.raw);
-	};
-
-	fields.forEach(function (field, i) {
-		self._fields.push(field.name);
-		function getter() {
-			return self.raw[i];
-		}
-		function setter(v) {
-			v = exports.toBuffer(v);
-
-			if (v.toString('hex') === '00' && !field.allowZero) {
-				v = Buffer.allocUnsafe(0);
-			}
-
-			if (field.allowLess && field.length) {
-				v = exports.stripZeros(v);
-				assert(field.length >= v.length, 
-					'The field ' + field.name + ' must not have more ' + field.length + ' bytes');
-			}
-			else if (!(field.allowZero && v.length === 0) && field.length) {
-				assert(field.length === v.length, 
-					'The field ' + field.name + ' must have byte length of ' + field.length);
-			}
-
-			self.raw[i] = v;
-		}
-
-		Object.defineProperty(self, field.name, {
-			enumerable: true,
-			configurable: true,
-			get: getter,
-			set: setter
-		});
-
-		if (field.default) {
-			self[field.name] = field.default;
-		}
-
-		// attach alias
-		if (field.alias) {
-			Object.defineProperty(self, field.alias, {
-				enumerable: false,
-				configurable: true,
-				set: setter,
-				get: getter
-			});
-		}
-	});
-
-	// if the constuctor is passed data
-	if (data) {
-		if (typeof data === 'string') {
-			data = Buffer.from(exports.stripHexPrefix(data), 'hex');
-		}
-
-		if (Buffer.isBuffer(data)) {
-			data = rlp.decode(data);
-		}
-
-		if (Array.isArray(data)) {
-			if (data.length > self._fields.length) {
-				throw new Error('wrong number of fields in data');
-			}
-
-			// make sure all the items are buffers
-			data.forEach(function (d, i) {
-				self[self._fields[i]] = exports.toBuffer(d);
-			});
-		} else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
-			var keys = Object.keys(data);
-			fields.forEach(function (field) {
-				if (keys.indexOf(field.name) !== -1) self[field.name] = data[field.name];
-				if (keys.indexOf(field.alias) !== -1) self[field.alias] = data[field.alias];
-			});
-		} else {
-			throw new Error('invalid data');
-		}
-	}
-};
+exports.rlp_encode = rlp_encode;
+exports.rlp_decode = rlp_decode;
+exports.rlp_getLength = rlp_getLength;
+exports.keccak = keccak;
+exports.rlphash = rlphash;
+exports.ecsign = ecsign;
+exports.ecrecover = ecrecover;
+exports.pubToAddress = exports.publicToAddress = publicToAddress;
+exports.zeros = zeros;
+exports.setLengthLeft = exports.setLength = setLength;
+exports.bufferToInt = bufferToInt;
+exports.isHexPrefixed = isHexPrefixed;
+exports.stripHexPrefix = stripHexPrefix;
+exports.padToEven = padToEven;
+exports.isHexString = isHexString;
+exports.toBuffer = toBuffer;
+exports.baToJSON = baToJSON;
+exports.intToHex = intToHex;
+exports.unpad = exports.stripZeros = stripZeros;
+exports.intToBuffer = intToBuffer;
+exports.defineProperties = defineProperties;

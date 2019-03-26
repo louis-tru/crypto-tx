@@ -3,11 +3,14 @@
 	"version": "0.1.0",
 	"main": "index.js",
 	"author": "louistru@hotmail.com",
+	"bin": {
+		"denc": "shell.js"
+	},
 	"dependencies": {
 		"bn.js": "~4.11.0",
+		"hash.js": "~1.1.7",
 		"buffer": "~5.2.1",
 		"elliptic": "~6.2.3",
-		"hash.js": "~1.1.7",
 		"qkit": "~0.8.12"
 	}
 }

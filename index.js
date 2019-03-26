@@ -30,12 +30,17 @@
 
 var utils = require('qkit');
 var { Buffer } = require('buffer');
-var { Transaction } = require('./tx');
+var tx = require('./tx');
 var { keccak256 } = require('./keccak');
 var secp256k1 = require('./secp256k1');
+var assert = require('./secp256k1/assert');
 
 if (utils.haveNode) {
 	var crypto = require('crypto');
+} else {
+	var hash_js = require('hash.js');
+	var browserCrypto = global.crypto || global.msCrypto || {};
+	var subtle = browserCrypto.subtle || browserCrypto.webkitSubtle;
 }
 
 var EC_GROUP_ORDER = Buffer.from(
@@ -49,23 +54,41 @@ function isValidPrivateKey(privateKey) {
 	}
 }
 
+// Compare two buffers in constant time to prevent timing attacks.
+function equalConstTime(b1, b2) {
+	if (b1.length !== b2.length) {
+		return false;
+	}
+	var res = 0;
+	for (var i = 0; i < b1.length; i++) {
+		res |= b1[i] ^ b2[i];  // jshint ignore:line
+	}
+	return res === 0;
+}
+
 function getRandomValues(len) {
-	if (utils.haveNode) { // node
+	if (crypto) { // node
 		return crypto.randomBytes(len);
 	} else { // web
 		return new Buffer(crypto.getRandomValues(new Uint8Array(len)));
 	}
 }
 
-function generatePrivateKey() {
+function genPrivateKey() {
 	var privateKey = getRandomValues(32);
 	while (!isValidPrivateKey(privateKey)) {
 		privateKey = getRandomValues(32);
 	}
 	return privateKey;
-};
+}
 
-function toChecksum(address) {
+function toEthAddress(publicKey) {
+	assert.isBuffer(publicKey, errno.EC_PUBLIC_KEY_TYPE_INVALID)
+	assert(publicKey.length === 32, "Bad public Key");
+
+	var hex = publicKey.toString('hex').slice(2);
+	var publicHash = keccak256('0x' + hex).hex;
+	var address = toChecksum(publicHash.slice(-40));
 	var addressHash = keccak256(address).hex;
 	var checksumAddress = '0x';
 	for (var i = 0; i < 40; i++) {
@@ -75,45 +98,152 @@ function toChecksum(address) {
 	return checksumAddress;
 }
 
-function getPublicKeyFromPrivate(privateKey) {
-	var publicKey = secp256k1.publicKeyCreate(privateKey, false).toString('hex').slice(2);
-	var publicHash = keccak256('0x' + publicKey).hex;
-	var address = toChecksum(publicHash.slice(-40));
-	// console.log(address);
-	return address;
+function getEthAddress(privateKey) {
+	return toEthAddress(getPublic(privateKey));
 }
 
-function sign(txData) {
-	// var txData = {
-	// 	nonce: '0x00',
-	// 	gasPrice: '0x09184e72a000', 
-	// 	gasLimit: '0x2710',
-	// 	to: '0x0000000000000000000000000000000000000000',
-	// 	value: '0x00', 
-	// 	data: '0x7f7465737432000000000000000000000000000000000000000000000000000000600057',
-	// 	// EIP 155 chainId - mainnet: 1, ropsten: 3
-	// 	chainId: 3
-	// }
-	var tx = new Transaction(txData);
-	tx.sign(getAccountPrivkeyKey());
-	var serializedTx = tx.serialize();
+function getPublic(privateKey) {
+	return secp256k1.publicKeyCreate(privateKey, false);
+}
+
+/**
+ * Get compressed version of public key.
+ */
+function getPublicCompressed(privateKey) { // jshint ignore:line
+	return secp256k1.publicKeyCreate(privateKey, true);
+}
+
+function sign(privateKey, message, options) {
+	return secp256k1.sign(message, privateKey, options);
+}
+
+function verify(publicKeyTo, message, signature) {
+	return secp256k1.sign(message, signature, publicKeyTo);
+}
+
+function ecdh(publicKeyA, privateKeyB) {
+	return secp256k1.ecdh(publicKeyA, privateKeyB);
+}
+
+function getCryptoSubtleAes(op) {
+	return async function(iv, key, data) {
+		assert.isBuffer(iv, 'Bad aes iv');
+		assert.isBuffer(key, 'Bad aes key');
+		assert.isBuffer(data, 'Bad aes data');
+		var algorithm = { name: 'AES-CBC' };
+		var cryptoKey = await subtle.importKey('raw', key, algorithm, false, [op]);
+		var encAlgorithm = { name: 'AES-CBC', iv: iv };
+		var result = await subtle[op](encAlgorithm, cryptoKey, data);
+		return Buffer.from(new Uint8Array(result));
+	}
+}
+
+function sha512(msg) {
+	if (crypto) {
+		return crypto.createHash("sha512").update(msg).digest();
+	} else {
+		return new Buffer(hash_js.sha512().update(msg).digest());
+	}
+}
+
+function hmacSha256(key, msg) {
+	if (crypto) {
+		return crypto.createHmac('sha256', key).update(msg).digest();
+	} else {
+		return hash_js.hmac(hash_js.sha256, key).update(msg).digest();
+	}
+}
+
+var aes256CbcEncrypt = crypto ? async function(iv, key, plaintext) {
+	var cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+	var firstChunk = cipher.update(plaintext);
+	var secondChunk = cipher.final();
+	return Buffer.concat([firstChunk, secondChunk]);
+}: getCryptoSubtleAes('encrypt');
+
+var aes256CbcDecrypt = async function(iv, key, ciphertext) {
+	var cipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+	var firstChunk = cipher.update(ciphertext);
+	var secondChunk = cipher.final();
+	return Buffer.concat([firstChunk, secondChunk]);
+}: getCryptoSubtleAes('decrypt');
+
+/**
+ * Encrypt message for given recepient's public key.
+ * @param {Buffer} publicKeyTo - Recipient's public key (65 bytes)
+ * @param {Buffer} message - The message being encrypted
+ * @param {?{?iv: Buffer, ?ephemPrivateKey: Buffer}} options - You may also
+ * specify initialization vector (16 bytes) and ephemeral private key
+ * (32 bytes) to get deterministic results.
+ * @return {Promise.<Ecies>} - A promise that resolves with the ECIES
+ * structure on successful encryption and rejects on failure.
+ */
+async function encryptECIES(publicKeyTo, message, options) {
+	options = options || {};
+	// Tmp variable to save context from flat promises;
+	var ephemPrivateKey = options.ephemPrivateKey || genPrivateKey();
+	var ephemPublicKey = getPublic(ephemPrivateKey);
+	var px = ecdh(publicKeyTo, ephemPrivateKey);
+	var hash = sha512(px);
+	var iv = options.iv || getRandomValues(16);
+	var encryptionKey = hash.slice(0, 32);
+	var macKey = hash.slice(32);
+	var ciphertext = await aes256CbcEncrypt(iv, encryptionKey, message);
+	var dataToMac = Buffer.concat([iv, ephemPublicKey, ciphertext]);
+	var mac = Buffer.from(hmacSha256(macKey, dataToMac));
 	return {
-		rsv: { r: tx.r, s: tx.s, v: tx.v },
-		rsvHex: {
-			r: '0x' + tx.r.toString('hex'),
-			s: '0x' + tx.s.toString('hex'),
-			v: '0x' + tx.v.toString('hex'),
-		},
-		rawTx: txData,
-		signTx: serializedTx,
-		hex: '0x' + serializedTx.toString('hex'),
+		iv: iv,
+		ephemPublicKey: ephemPublicKey,
+		ciphertext: ciphertext,
+		mac: mac,
 	};
 }
 
+/**
+ * Decrypt message using given private key.
+ * @param {Buffer} privateKey - A 32-byte private key of recepient of
+ * the mesage
+ * @param {Ecies} options - ECIES structure (result of ECIES encryption)
+ * @return {Promise.<Buffer>} - A promise that resolves with the
+ * plaintext on successful decryption and rejects on failure.
+ */
+async function decryptECIES(privateKey, options) {
+	assert(privateKey.length === 32, 'Bad private key');
+	assert(isValidPrivateKey(privateKey), 'Bad private key');
+
+	var px = ecdh(options.ephemPublicKey, privateKey);
+	var hash = sha512(px);
+	var encryptionKey = hash.slice(0, 32);
+	var macKey = hash.slice(32);
+
+	var dataToMac = Buffer.concat([
+		options.iv,
+		options.ephemPublicKey,
+		options.ciphertext
+	]);
+
+	if (options.mac) {
+		var realMac = hmacSha256(macKey, dataToMac);
+		assert(equalConstTime(options.mac, realMac), 'Bad MAC');
+	}
+
+	var result = await aes256CbcDecrypt(options.iv, encryptionKey, options.ciphertext);
+
+	return result;
+}
+
 module.exports = {
-	generatePrivateKey,
-	getPublicKeyFromPrivate,
-	Transaction,
+	genPrivateKey,
+	getPublic,
+	getPublicCompressed,
+	getEthAddress,
 	secp256k1,
 	sign,
+	verify,
+	ecdh,
+	aes256CbcEncrypt,
+	aes256CbcDecrypt,
+	encryptECIES,
+	decryptECIES,
+	...tx,
 };

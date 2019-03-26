@@ -32,7 +32,6 @@
 
 var utils = require('qkit');
 var Buffer = require('buffer').Buffer;
-var hash_js = require('hash.js');
 var BN = require('bn.js');
 var EC = require('elliptic').ec;
 
@@ -43,6 +42,8 @@ var ecparams = ec.curve;
 
 if (utils.haveNode) {
 	var crypto = require('crypto');
+} else {
+	var hash_js = require('hash.js');
 }
 
 function loadCompressedPublicKey (first, xBuffer) {
@@ -110,7 +111,8 @@ exports.privateKeyExport = function (privateKey, compressed) {
 
 exports.privateKeyNegate = function (privateKey) {
 	var bn = new BN(privateKey)
-	return bn.isZero() ? Buffer.alloc(32) : ecparams.n.sub(bn).umod(ecparams.n).toArrayLike(Buffer, 'be', 32)
+	return bn.isZero() ? Buffer.alloc(32) : 
+		ecparams.n.sub(bn).umod(ecparams.n).toArrayLike(Buffer, 'be', 32);
 }
 
 exports.privateKeyModInverse = function (privateKey) {
@@ -174,7 +176,8 @@ exports.publicKeyTweakMul = function (publicKey, tweak, compressed) {
 	if (pair === null) throw new Error(errno.EC_PUBLIC_KEY_PARSE_FAIL)
 
 	tweak = new BN(tweak)
-	if (tweak.cmp(ecparams.n) >= 0 || tweak.isZero()) throw new Error(errno.EC_PUBLIC_KEY_TWEAK_MUL_FAIL)
+	if (tweak.cmp(ecparams.n) >= 0 || tweak.isZero()) 
+		throw new Error(errno.EC_PUBLIC_KEY_TWEAK_MUL_FAIL)
 
 	return Buffer.from(pair.pub.mul(tweak).encode(true, compressed))
 }
@@ -196,7 +199,8 @@ exports.publicKeyCombine = function (publicKeys, compressed) {
 exports.signatureNormalize = function (signature) {
 	var r = new BN(signature.slice(0, 32))
 	var s = new BN(signature.slice(32, 64))
-	if (r.cmp(ecparams.n) >= 0 || s.cmp(ecparams.n) >= 0) throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
+	if (r.cmp(ecparams.n) >= 0 || s.cmp(ecparams.n) >= 0) 
+		throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
 
 	var result = Buffer.from(signature)
 	if (s.cmp(ec.nh) === 1) ecparams.n.sub(s).toArrayLike(Buffer, 'be', 32).copy(result, 32)
@@ -207,7 +211,8 @@ exports.signatureNormalize = function (signature) {
 exports.signatureExport = function (signature) {
 	var r = signature.slice(0, 32)
 	var s = signature.slice(32, 64)
-	if (new BN(r).cmp(ecparams.n) >= 0 || new BN(s).cmp(ecparams.n) >= 0) throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
+	if (new BN(r).cmp(ecparams.n) >= 0 || new BN(s).cmp(ecparams.n) >= 0)
+		throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
 
 	return { r: r, s: s }
 }
@@ -254,7 +259,8 @@ exports.verify = function (message, signature, publicKey) {
 
 	var sigr = new BN(sigObj.r)
 	var sigs = new BN(sigObj.s)
-	if (sigr.cmp(ecparams.n) >= 0 || sigs.cmp(ecparams.n) >= 0) throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
+	if (sigr.cmp(ecparams.n) >= 0 || sigs.cmp(ecparams.n) >= 0) 
+		throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
 	if (sigs.cmp(ec.nh) === 1 || sigr.isZero() || sigs.isZero()) return false
 
 	var pair = loadPublicKey(publicKey)
@@ -268,7 +274,8 @@ exports.recover = function (message, signature, recovery, compressed) {
 
 	var sigr = new BN(sigObj.r)
 	var sigs = new BN(sigObj.s)
-	if (sigr.cmp(ecparams.n) >= 0 || sigs.cmp(ecparams.n) >= 0) throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
+	if (sigr.cmp(ecparams.n) >= 0 || sigs.cmp(ecparams.n) >= 0) 
+		throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
 
 	try {
 		if (sigr.isZero() || sigs.isZero()) throw new Error()
@@ -285,7 +292,7 @@ exports.ecdh = function (publicKey, privateKey) {
 	if (crypto) {
 		return crypto.createHash('sha256').update(shared).digest();
 	} else {
-		return new Buffer(hash_js().sha256().update(shared).digest());
+		return new Buffer(hash_js.sha256().update(shared).digest());
 	}
 }
 
