@@ -34,6 +34,7 @@ var tx = require('./tx');
 var { keccak256 } = require('./keccak');
 var secp256k1 = require('./secp256k1');
 var assert = require('./secp256k1/assert');
+var errno = require('./secp256k1/errno');
 
 if (utils.haveNode) {
 	var crypto = require('crypto');
@@ -83,12 +84,10 @@ function genPrivateKey() {
 }
 
 function toEthAddress(publicKey) {
-	assert.isBuffer(publicKey, errno.EC_PUBLIC_KEY_TYPE_INVALID)
-	assert(publicKey.length === 32, "Bad public Key");
-
+	assert.isBuffer(publicKey, errno.EC_PUBLIC_KEY_TYPE_INVALID);
 	var hex = publicKey.toString('hex').slice(2);
 	var publicHash = keccak256('0x' + hex).hex;
-	var address = toChecksum(publicHash.slice(-40));
+	var address = publicHash.slice(-40);
 	var addressHash = keccak256(address).hex;
 	var checksumAddress = '0x';
 	for (var i = 0; i < 40; i++) {
@@ -161,7 +160,7 @@ var aes256CbcEncrypt = crypto ? async function(iv, key, plaintext) {
 	return Buffer.concat([firstChunk, secondChunk]);
 }: getCryptoSubtleAes('encrypt');
 
-var aes256CbcDecrypt = async function(iv, key, ciphertext) {
+var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {
 	var cipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
 	var firstChunk = cipher.update(ciphertext);
 	var secondChunk = cipher.final();

@@ -494,4 +494,3 @@ exports.baToJSON = baToJSON;
 exports.intToHex = intToHex;
 exports.unpad = exports.stripZeros = stripZeros;
 exports.intToBuffer = intToBuffer;
-exports.defineProperties = defineProperties;
