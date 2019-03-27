@@ -163,13 +163,21 @@ function _rlp_decode (input) {
 	}
 }
 
+function rpl_intToHex(i) {
+	var hex = i.toString(16)
+	if (hex.length % 2) {
+		hex = '0' + hex
+	}
+	return hex
+}
+
 function rlp_encodeLength (len, offset) {
 	if (len < 56) {
 		return Buffer.from([len + offset])
 	} else {
-		var hexLength = intToHex(len)
+		var hexLength = rpl_intToHex(len)
 		var lLength = hexLength.length / 2
-		var firstByte = intToHex(offset + 55 + lLength)
+		var firstByte = rpl_intToHex(offset + 55 + lLength)
 		return Buffer.from(firstByte + hexLength, 'hex')
 	}
 }
@@ -178,7 +186,6 @@ function rlp_getLength(input) {
 	if (!input || input.length === 0) {
 		return Buffer.from([])
 	}
-
 	input = toBuffer(input)
 	var firstByte = input[0]
 	if (firstByte <= 0x7f) {
@@ -198,7 +205,7 @@ function rlp_getLength(input) {
 	}
 }
 
-function safeParseInt (v, base) {
+function safeParseInt(v, base) {
 	if (v.slice(0, 2) === '00') {
 		throw (new Error('invalid RLP: extra zeros'))
 	}
