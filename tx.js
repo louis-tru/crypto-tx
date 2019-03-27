@@ -223,7 +223,7 @@ class Transaction {
 		 * @name serialize
 		 */
 		// attached serialize
-		utils.defineProperties(this, fields, data);
+		defineProperties(this, fields, data);
 
 		/**
 		 * @property {Buffer} from (read only) sender address of 

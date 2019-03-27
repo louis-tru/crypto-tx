@@ -32,7 +32,7 @@ var assert = require('assert');
 var secp256k1 = require('./secp256k1');
 var { Buffer } = require('buffer');
 var BN = require('bn.js');
-var { keccak } = require("./keccak");
+var keccak_0 = require("./keccak").keccak;
 
 /**
  * RLP Encoding based on: https://github.com/ethereum/wiki/wiki/%5BEnglish%5D-RLP
@@ -215,7 +215,7 @@ function keccak(a, bits) {
 	a = toBuffer(a);
 	if (!bits) bits = 256;
 
-	return new Buffer(keccak(a, bits).data);
+	return Buffer.from(keccak_0(a, bits).data);
 }
 
 /**
@@ -224,7 +224,7 @@ function keccak(a, bits) {
  * @return {Buffer}
  */
 function rlphash(a) {
-	return keccak(rlp_encode(a));
+	return Buffer.from(keccak_0(rlp_encode(a)).data);
 }
 
 /**
