@@ -111,8 +111,8 @@ async function main() {
 		await decrypt();
 	} else if (opts.G) {
 		var privateKey = crypto.genPrivateKey();
-		var publicKey = crypto.getPublic(privateKey);
-		// var publicKey = crypto.getPublicCompressed(privateKey);
+		// var publicKey = crypto.getPublic(privateKey);
+		var publicKey = crypto.getPublicCompressed(privateKey);
 		console.log('privateKey: 0x' + privateKey.toString('hex'));
 		console.log('publicKey:  0x' + publicKey.toString('hex'));
 	} else {
