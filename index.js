@@ -168,6 +168,13 @@ var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {
 }: getCryptoSubtleAes('decrypt');
 
 /**
+ * @func defaultEncryptIV
+ */
+function defaultEncryptIV() {
+	return new Uint8Array([12,23,76,23,78,12,90,22,67,23,125,46,78,211,222,138]);
+}
+
+/**
  * Encrypt message for given recepient's public key.
  * @param {Buffer} publicKeyTo - Recipient's public key (65 bytes)
  * @param {Buffer} message - The message being encrypted
@@ -181,10 +188,12 @@ async function encryptECIES(publicKeyTo, message, options) {
 	options = options || {};
 	// Tmp variable to save context from flat promises;
 	var ephemPrivateKey = options.ephemPrivateKey || genPrivateKey();
+	assert(isValidPrivateKey(ephemPrivateKey), 'Bad private key invalid');
+
 	var ephemPublicKey = getPublic(ephemPrivateKey);
 	var px = ecdh(publicKeyTo, ephemPrivateKey);
 	var hash = sha512(px);
-	var iv = options.iv || getRandomValues(16);
+	var iv = options.iv || defaultEncryptIV(); //getRandomValues(16);
 	var encryptionKey = hash.slice(0, 32);
 	var macKey = hash.slice(32);
 	var ciphertext = await aes256CbcEncrypt(iv, encryptionKey, message);
@@ -207,26 +216,27 @@ async function encryptECIES(publicKeyTo, message, options) {
  * plaintext on successful decryption and rejects on failure.
  */
 async function decryptECIES(privateKey, options) {
-	assert(privateKey.length === 32, 'Bad private key');
-	assert(isValidPrivateKey(privateKey), 'Bad private key');
+	assert.isBuffer(privateKey, 'Bad private key');
+	assert.isBufferLength(privateKey, 32, 'Bad private key length');
+	assert(isValidPrivateKey(privateKey), 'Bad private key invalid');
 
 	var px = ecdh(options.ephemPublicKey, privateKey);
 	var hash = sha512(px);
 	var encryptionKey = hash.slice(0, 32);
 	var macKey = hash.slice(32);
-
-	var dataToMac = Buffer.concat([
-		options.iv,
-		options.ephemPublicKey,
-		options.ciphertext
-	]);
+	var iv = options.iv || defaultEncryptIV();
 
 	if (options.mac) {
+		var dataToMac = Buffer.concat([
+			iv,
+			options.ephemPublicKey,
+			options.ciphertext
+		]);
 		var realMac = hmacSha256(macKey, dataToMac);
 		assert(equalConstTime(options.mac, realMac), 'Bad MAC');
 	}
 
-	var result = await aes256CbcDecrypt(options.iv, encryptionKey, options.ciphertext);
+	var result = await aes256CbcDecrypt(iv, encryptionKey, options.ciphertext);
 
 	return result;
 }
@@ -242,6 +252,8 @@ module.exports = {
 	ecdh,
 	aes256CbcEncrypt,
 	aes256CbcDecrypt,
+	getRandomValues,
+	defaultEncryptIV,
 	encryptECIES,
 	decryptECIES,
 	...tx,
