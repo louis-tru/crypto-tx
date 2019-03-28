@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /* ***** BEGIN LICENSE BLOCK *****
  * Distributed under the BSD license:
  *
