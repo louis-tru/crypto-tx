@@ -1,6 +1,6 @@
 {
 	"name": "crypto-tx",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"main": "index.js",
 	"author": "louistru@hotmail.com",
 	"bin": {

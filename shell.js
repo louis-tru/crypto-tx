@@ -30,7 +30,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 var crypto = require('./index');
-var assert = require('./secp256k1/assert');
+var assert = require('./assert');
 var arguments = require('qkit/arguments');
 var toBuffer = require('./utils').toBuffer;
 var opts = arguments.options;
@@ -111,11 +111,17 @@ async function main() {
 	} else if (opts.D) {
 		await decrypt();
 	} else if (opts.G) {
-		var privateKey = crypto.genPrivateKey();
-		// var publicKey = crypto.getPublic(privateKey);
-		var publicKey = crypto.getPublicCompressed(privateKey);
+		if (opts.k) {
+			var privateKey = toBuffer(opts.k);
+			assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
+		} else {
+			var privateKey = crypto.genPrivateKey();
+		}
+		var publicKey_0 = crypto.getPublic(privateKey);
+		var publicKey_1 = crypto.getPublicCompressed(privateKey);
 		console.log('privateKey: 0x' + privateKey.toString('hex'));
-		console.log('publicKey:  0x' + publicKey.toString('hex'));
+		console.log('publicKey:  0x' + publicKey_0.toString('hex'));
+		console.log('publicKey1: 0x' + publicKey_1.toString('hex'));
 	} else {
 		printHelp(0);
 	}

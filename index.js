@@ -33,8 +33,9 @@ var { Buffer } = require('buffer');
 var tx = require('./tx');
 var { keccak256 } = require('./keccak');
 var secp256k1 = require('./secp256k1');
-var assert = require('./secp256k1/assert');
-var errno = require('./secp256k1/errno');
+var assert = require('./assert');
+var errno = require('./errno');
+var utils_2 = require('./utils');
 
 if (utils.haveNode) {
 	var crypto = require('crypto');
@@ -83,22 +84,12 @@ function genPrivateKey() {
 	return privateKey;
 }
 
-function toEthAddress(publicKey) {
-	assert.isBuffer(publicKey, errno.EC_PUBLIC_KEY_TYPE_INVALID);
-	var hex = publicKey.toString('hex').slice(2);
-	var publicHash = keccak256('0x' + hex).hex;
-	var address = publicHash.slice(-40);
-	var addressHash = keccak256(address).hex;
-	var checksumAddress = '0x';
-	for (var i = 0; i < 40; i++) {
-		checksumAddress += parseInt(addressHash[i + 2], 16) > 7 ? 
-			address[i].toUpperCase() : address[i];
-	}
-	return checksumAddress;
+function publicToAddress(publicKey) {
+	return '0x' + utils_2.publicToAddress(publicKey, true).toString('hex');
 }
 
-function getEthAddress(privateKey) {
-	return toEthAddress(getPublic(privateKey));
+function getAddress(privateKey) {
+	return publicToAddress(getPublic(privateKey));
 }
 
 function getPublic(privateKey) {
@@ -245,8 +236,11 @@ module.exports = {
 	genPrivateKey,
 	getPublic,
 	getPublicCompressed,
-	getEthAddress,
+	publicToAddress,
+	getAddress,
 	secp256k1,
+	publicKeyConvert: secp256k1.publicKeyConvert,
+	toBuffer: utils_2.toBuffer,
 	sign,
 	verify,
 	ecdh,
@@ -256,5 +250,6 @@ module.exports = {
 	defaultEncryptIV,
 	encryptECIES,
 	decryptECIES,
+	assert,
 	...tx,
 };

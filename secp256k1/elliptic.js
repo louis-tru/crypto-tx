@@ -35,7 +35,7 @@ var Buffer = require('buffer').Buffer;
 var BN = require('bn.js');
 var EC = require('elliptic').ec;
 
-var errno = require('./errno');
+var errno = require('../errno');
 
 var ec = new EC('secp256k1');
 var ecparams = ec.curve;

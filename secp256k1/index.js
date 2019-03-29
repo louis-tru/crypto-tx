@@ -30,9 +30,9 @@
 
 'use strict'
 
-var assert = require('./assert');
+var assert = require('../assert');
 var der = require('./der');
-var errno = require('./errno');
+var errno = require('../errno');
 
 function initCompressedValue (value, defaultValue) {
 	if (value === undefined)
