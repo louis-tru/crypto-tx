@@ -45,13 +45,14 @@ def_opts(['k'],         '',  '-k   privateKey hex');
 def_opts(['p'],         '',  '-p   publicKey hex');
 def_opts(['d'],         '',  '-d   encrypt or decrypt data');
 def_opts(['iv'],        '',  '-iv  IV 16 bytes hex');
+def_opts(['json'],       0,  '-json convert json [{0}]');
 
 function printHelp(code = -1) {
 	process.stdout.write('Usage:\n');
-	process.stdout.write('  crypto-tx -G\n');
+	process.stdout.write('  crypto-tx -G [-json]\n');
 	process.stdout.write(
 		'  crypto-tx -E '+
-		'[-k privateKey] -p publicKeyTo -d originaltext [-iv value] \n');
+		'[-k privateKey] -p publicKeyTo -d originaltext [-iv value] [-json] \n');
 	process.stdout.write(
 		'  crypto-tx -D '+
 		'-k privateKey -p ephemPublicKey -d ciphertext [-iv value] \n');
@@ -68,7 +69,7 @@ async function encrypt() {
 	var publicKey = crypto.getPublic(privateKey);
 	var publicKeyTo = toBuffer(opts.p);
 	var originaltext = toBuffer(opts.d);
-	var iv = opts.iv ? toBuffer(opts.iv): crypto.defaultEncryptIV();
+	var iv = opts.iv ? toBuffer(opts.iv): crypto.defaultEncryptIv();
 
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength2(publicKeyTo, 33, 65, 'Bad ephemPublicKey length');
@@ -78,10 +79,21 @@ async function encrypt() {
 		iv, ephemPrivateKey: privateKey, 
 	});
 
-	console.log('ciphertext: 0x' + ciphertext.toString('hex'));
-	console.log('ephemPublicKey: 0x' + publicKey.toString('hex'));
-	console.log('iv: 0x' + Buffer.from(iv).toString('hex'));
-	console.log('mac: 0x' + mac.toString('hex'));
+	var result = {
+		ciphertext: '0x' + ciphertext.toString('hex'),
+		ephemPublicKey: '0x' + publicKey.toString('hex'),
+		iv: '0x' + Buffer.from(iv).toString('hex'),
+		mac: '0x' + mac.toString('hex'),
+	};
+
+	if (opts.json) {
+		console.log(JSON.stringify(result));
+	} else {
+		console.log('ciphertext:', result.ciphertext);
+		console.log('ephemPublicKey:', result.ephemPublicKey);
+		console.log('iv:', result.iv);
+		console.log('mac:', result.mac);
+	}
 }
 
 async function decrypt() {
@@ -91,7 +103,7 @@ async function decrypt() {
 	var privateKey = toBuffer(opts.k);
 	var ephemPublicKey = toBuffer(opts.p);
 	var ciphertext = toBuffer(opts.d);
-	var iv = opts.iv ? toBuffer(opts.iv): crypto.defaultEncryptIV();
+	var iv = opts.iv ? toBuffer(opts.iv): crypto.defaultEncryptIv();
 
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength2(ephemPublicKey, 33, 65, 'Bad ephemPublicKey length');
@@ -119,9 +131,18 @@ async function main() {
 		}
 		var publicKey_0 = crypto.getPublic(privateKey);
 		var publicKey_1 = crypto.getPublicCompressed(privateKey);
-		console.log('privateKey: 0x' + privateKey.toString('hex'));
-		console.log('publicKey:  0x' + publicKey_0.toString('hex'));
-		console.log('publicKey1: 0x' + publicKey_1.toString('hex'));
+		var result = {
+			privateKey: '0x' + privateKey.toString('hex'),
+			publicKey: '0x' + publicKey_0.toString('hex'),
+			publicKey1: '0x' + publicKey_1.toString('hex'),
+		};
+		if (opts.json) {
+			console.log(JSON.stringify(result));
+		} else {
+			console.log('privateKey:', result.privateKey);
+			console.log('publicKey:', result.publicKey);
+			console.log('publicKey1:', result.publicKey1);
+		}
 	} else {
 		printHelp(0);
 	}

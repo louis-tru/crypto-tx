@@ -31,7 +31,7 @@
 var utils = require('qkit');
 var { Buffer } = require('buffer');
 var tx = require('./tx');
-var { keccak256 } = require('./keccak');
+var { keccak } = require('./keccak');
 var secp256k1 = require('./secp256k1');
 var assert = require('./assert');
 var errno = require('./errno');
@@ -159,9 +159,9 @@ var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {
 }: getCryptoSubtleAes('decrypt');
 
 /**
- * @func defaultEncryptIV
+ * @func defaultEncryptIv
  */
-function defaultEncryptIV() {
+function defaultEncryptIv() {
 	return new Uint8Array([12,23,76,23,78,12,90,22,67,23,125,46,78,211,222,138]);
 }
 
@@ -184,7 +184,7 @@ async function encryptECIES(publicKeyTo, message, options) {
 	var ephemPublicKey = getPublic(ephemPrivateKey);
 	var px = ecdh(publicKeyTo, ephemPrivateKey);
 	var hash = sha512(px);
-	var iv = options.iv || defaultEncryptIV(); //getRandomValues(16);
+	var iv = options.iv || defaultEncryptIv(); //getRandomValues(16);
 	var encryptionKey = hash.slice(0, 32);
 	var macKey = hash.slice(32);
 	var ciphertext = await aes256CbcEncrypt(iv, encryptionKey, message);
@@ -215,7 +215,7 @@ async function decryptECIES(privateKey, options) {
 	var hash = sha512(px);
 	var encryptionKey = hash.slice(0, 32);
 	var macKey = hash.slice(32);
-	var iv = options.iv || defaultEncryptIV();
+	var iv = options.iv || defaultEncryptIv();
 
 	if (options.mac) {
 		var dataToMac = Buffer.concat([
@@ -247,9 +247,10 @@ module.exports = {
 	aes256CbcEncrypt,
 	aes256CbcDecrypt,
 	getRandomValues,
-	defaultEncryptIV,
+	defaultEncryptIv,
 	encryptECIES,
 	decryptECIES,
 	assert,
+	keccak,
 	...tx,
 };
