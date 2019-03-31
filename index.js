@@ -84,23 +84,20 @@ function genPrivateKey() {
 	return privateKey;
 }
 
-function publicToAddress(publicKey) {
-	return '0x' + utils_2.publicToAddress(publicKey, true).toString('hex');
+function publicToAddress(publicKey, fmt = 'address') {
+	var address = utils_2.publicToAddress(publicKey, true);
+	return (
+		fmt == 'hex' ? address.toString('hex'):
+		fmt == 'address' ? '0x' + address.toString('hex'): address
+	);
 }
 
-function getAddress(privateKey) {
-	return publicToAddress(getPublic(privateKey));
+function getAddress(privateKey, fmt = 'address') {
+	return publicToAddress(getPublic(privateKey), fmt);
 }
 
-function getPublic(privateKey) {
-	return secp256k1.publicKeyCreate(privateKey, false);
-}
-
-/**
- * Get compressed version of public key.
- */
-function getPublicCompressed(privateKey) { // jshint ignore:line
-	return secp256k1.publicKeyCreate(privateKey, true);
+function getPublic(privateKey, compressed = false) {
+	return secp256k1.publicKeyCreate(privateKey, compressed);
 }
 
 function sign(privateKey, message, options) {
@@ -109,6 +106,10 @@ function sign(privateKey, message, options) {
 
 function verify(publicKeyTo, message, signature) {
 	return secp256k1.sign(message, signature, publicKeyTo);
+}
+
+function recover(message, signature, recovery, compressed = true) {
+	return secp256k1.recover(message, signature, recovery, compressed);
 }
 
 function ecdh(publicKeyA, privateKeyB) {
@@ -235,7 +236,6 @@ async function decryptECIES(privateKey, options) {
 module.exports = {
 	genPrivateKey,
 	getPublic,
-	getPublicCompressed,
 	publicToAddress,
 	getAddress,
 	secp256k1,
@@ -243,6 +243,7 @@ module.exports = {
 	toBuffer: utils_2.toBuffer,
 	sign,
 	verify,
+	recover,
 	ecdh,
 	aes256CbcEncrypt,
 	aes256CbcDecrypt,

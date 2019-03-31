@@ -130,7 +130,7 @@ async function main() {
 			var privateKey = crypto.genPrivateKey();
 		}
 		var publicKey_0 = crypto.getPublic(privateKey);
-		var publicKey_1 = crypto.getPublicCompressed(privateKey);
+		var publicKey_1 = crypto.getPublic(privateKey, true);
 		var result = {
 			privateKey: '0x' + privateKey.toString('hex'),
 			publicKey: '0x' + publicKey_0.toString('hex'),
