@@ -86,10 +86,20 @@ function genPrivateKey() {
 
 function publicToAddress(publicKey, fmt = 'address') {
 	var address = utils_2.publicToAddress(publicKey, true);
-	return (
-		fmt == 'hex' ? address.toString('hex'):
-		fmt == 'address' ? '0x' + address.toString('hex'): address
-	);
+	if (fmt == 'address') {
+		address = address.toString('hex');
+		var addressHash = keccak(address).hex.slice(2);
+		var checksumAddress = '0x';
+		for (var i = 0; i < 40; i++) {
+			checksumAddress += parseInt(addressHash[i], 16) > 7 ? 
+				address[i].toUpperCase() : address[i];
+		}
+		return checksumAddress;
+	} else if (fmt == 'hex') {
+		return address.toString('hex');
+	} else {
+		return address; // binary
+	}
 }
 
 function getAddress(privateKey, fmt = 'address') {
@@ -100,11 +110,11 @@ function getPublic(privateKey, compressed = false) {
 	return secp256k1.publicKeyCreate(privateKey, compressed);
 }
 
-function sign(privateKey, message, options) {
+function sign(message, privateKey, options) {
 	return secp256k1.sign(message, privateKey, options);
 }
 
-function verify(publicKeyTo, message, signature) {
+function verify(message, publicKeyTo, signature) {
 	return secp256k1.sign(message, signature, publicKeyTo);
 }
 
@@ -160,13 +170,6 @@ var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {
 }: getCryptoSubtleAes('decrypt');
 
 /**
- * @func defaultEncryptIv
- */
-function defaultEncryptIv() {
-	return new Uint8Array([12,23,76,23,78,12,90,22,67,23,125,46,78,211,222,138]);
-}
-
-/**
  * Encrypt message for given recepient's public key.
  * @param {Buffer} publicKeyTo - Recipient's public key (65 bytes)
  * @param {Buffer} message - The message being encrypted
@@ -185,7 +188,10 @@ async function encryptECIES(publicKeyTo, message, options) {
 	var ephemPublicKey = getPublic(ephemPrivateKey);
 	var px = ecdh(publicKeyTo, ephemPrivateKey);
 	var hash = sha512(px);
-	var iv = options.iv || defaultEncryptIv(); //getRandomValues(16);
+	var iv = options.iv ? utils_2.toBuffer(options.iv): getRandomValues(16);
+
+	assert.isBufferLength(iv, 16, 'Bad iv length Must 128 bit');
+
 	var encryptionKey = hash.slice(0, 32);
 	var macKey = hash.slice(32);
 	var ciphertext = await aes256CbcEncrypt(iv, encryptionKey, message);
@@ -216,7 +222,9 @@ async function decryptECIES(privateKey, options) {
 	var hash = sha512(px);
 	var encryptionKey = hash.slice(0, 32);
 	var macKey = hash.slice(32);
-	var iv = options.iv || defaultEncryptIv();
+	var iv = utils_2.toBuffer(options.iv);
+
+	assert.isBufferLength(iv, 16, 'Bad iv length Must 128 bit');
 
 	if (options.mac) {
 		var dataToMac = Buffer.concat([
@@ -248,7 +256,6 @@ module.exports = {
 	aes256CbcEncrypt,
 	aes256CbcDecrypt,
 	getRandomValues,
-	defaultEncryptIv,
 	encryptECIES,
 	decryptECIES,
 	assert,

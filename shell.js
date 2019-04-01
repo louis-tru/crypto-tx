@@ -55,7 +55,7 @@ function printHelp(code = -1) {
 		'[-k privateKey] -p publicKeyTo -d originaltext [-iv value] [-json] \n');
 	process.stdout.write(
 		'  crypto-tx -D '+
-		'-k privateKey -p ephemPublicKey -d ciphertext [-iv value] \n');
+		'-k privateKey -p ephemPublicKey -d ciphertext -iv value \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -69,14 +69,14 @@ async function encrypt() {
 	var publicKey = crypto.getPublic(privateKey);
 	var publicKeyTo = toBuffer(opts.p);
 	var originaltext = toBuffer(opts.d);
-	var iv = opts.iv ? toBuffer(opts.iv): crypto.defaultEncryptIv();
+	var iv = opts.iv ? toBuffer(opts.iv): crypto.getRandomValues();
 
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength2(publicKeyTo, 33, 65, 'Bad ephemPublicKey length');
-	assert.isBufferLength(iv, 16, 'Bad iv length');
+	assert.isBufferLength(iv, 16, 'Bad iv length Must 128 bit');
 
-	var { mac, ciphertext } = await crypto.encryptECIES(publicKeyTo, originaltext, {
-		iv, ephemPrivateKey: privateKey, 
+	var { mac, ciphertext, iv } = await crypto.encryptECIES(publicKeyTo, originaltext, {
+		opts.iv, ephemPrivateKey: privateKey, 
 	});
 
 	var result = {
@@ -97,17 +97,17 @@ async function encrypt() {
 }
 
 async function decrypt() {
-	if (!opts.p || !opts.d || !opts.k)
+	if (!opts.p || !opts.d || !opts.k || !opts.iv)
 		printHelp();
 
 	var privateKey = toBuffer(opts.k);
 	var ephemPublicKey = toBuffer(opts.p);
 	var ciphertext = toBuffer(opts.d);
-	var iv = opts.iv ? toBuffer(opts.iv): crypto.defaultEncryptIv();
+	var iv = toBuffer(opts.iv);
 
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength2(ephemPublicKey, 33, 65, 'Bad ephemPublicKey length');
-	assert.isBufferLength(iv, 16, 'Bad iv length');
+	assert.isBufferLength(iv, 16, 'Bad iv length Must 128 bit');
 
 	var r = await crypto.decryptECIES(privateKey, {
 		ephemPublicKey, ciphertext, iv,
