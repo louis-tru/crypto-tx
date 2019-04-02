@@ -69,14 +69,15 @@ async function encrypt() {
 	var publicKey = crypto.getPublic(privateKey);
 	var publicKeyTo = toBuffer(opts.p);
 	var originaltext = toBuffer(opts.d);
-	var iv = opts.iv ? toBuffer(opts.iv): crypto.getRandomValues();
+	// console.log('opts.iv', !!opts.iv)
+	var iv = opts.iv ? toBuffer(opts.iv): crypto.getRandomValues(16);
 
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength2(publicKeyTo, 33, 65, 'Bad ephemPublicKey length');
 	assert.isBufferLength(iv, 16, 'Bad iv length Must 128 bit');
 
 	var { mac, ciphertext, iv } = await crypto.encryptECIES(publicKeyTo, originaltext, {
-		opts.iv, ephemPrivateKey: privateKey, 
+		iv, ephemPrivateKey: privateKey, 
 	});
 
 	var result = {

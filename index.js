@@ -86,19 +86,17 @@ function genPrivateKey() {
 
 function publicToAddress(publicKey, fmt = 'address') {
 	var address = utils_2.publicToAddress(publicKey, true);
-	if (fmt == 'address') {
+	if (fmt == 'binary') {
+		return address; // binary
+	}	else {
 		address = address.toString('hex');
 		var addressHash = keccak(address).hex.slice(2);
-		var checksumAddress = '0x';
+		var checksumAddress = '';
 		for (var i = 0; i < 40; i++) {
 			checksumAddress += parseInt(addressHash[i], 16) > 7 ? 
 				address[i].toUpperCase() : address[i];
 		}
-		return checksumAddress;
-	} else if (fmt == 'hex') {
-		return address.toString('hex');
-	} else {
-		return address; // binary
+		return fmt == 'address' ? '0x' + checksumAddress: checksumAddress;
 	}
 }
 
