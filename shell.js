@@ -41,6 +41,7 @@ var def_opts = arguments.defOpts;
 def_opts(['E'],         0,   '-E   cmd encryptECIES [{0}]');
 def_opts(['D'],         0,   '-D   cmd decryptECIES [{0}]');
 def_opts(['G'],         0,   '-G   cmd gen private and public keys [{0}]');
+def_opts(['C'],         0,   '-G   cmd public key convert [{0}]');
 def_opts(['k'],         '',  '-k   privateKey hex');
 def_opts(['p'],         '',  '-p   publicKey hex');
 def_opts(['d'],         '',  '-d   encrypt or decrypt data');
@@ -50,6 +51,7 @@ def_opts(['json'],       0,  '-json convert json [{0}]');
 function printHelp(code = -1) {
 	process.stdout.write('Usage:\n');
 	process.stdout.write('  crypto-tx -G [-json]\n');
+	process.stdout.write('  crypto-tx -C -p publicKey \n');
 	process.stdout.write(
 		'  crypto-tx -E '+
 		'[-k privateKey] -p publicKeyTo -d originaltext [-iv value] [-json] \n');
@@ -144,6 +146,16 @@ async function main() {
 			console.log('publicKey:', result.publicKey);
 			console.log('publicKey1:', result.publicKey1);
 		}
+	} else if (opts.C) {
+		if (!opts.p)
+			printHelp(0);
+
+		var public_key = toBuffer(opts.p);
+		var public_key_0 = crypto.publicKeyConvert(public_key);
+		var public_key_1 = crypto.publicKeyConvert(public_key, false);
+
+		console.log('publicKey:', '0x' + public_key_0.toString('hex'));
+		console.log('publicKeyLong:', '0x' + public_key_1.toString('hex'));
 	} else {
 		printHelp(0);
 	}
