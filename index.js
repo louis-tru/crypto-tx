@@ -84,19 +84,24 @@ function genPrivateKey() {
 	return privateKey;
 }
 
+function toChecksumAddress(address) {
+	address = address.toString('hex');
+	var addressHash = keccak(address).hex.slice(2);
+	var checksumAddress = '';
+	for (var i = 0; i < 40; i++) {
+		checksumAddress += parseInt(addressHash[i], 16) > 7 ? 
+			address[i].toUpperCase() : address[i];
+	}
+	return checksumAddress;
+}
+
 function publicToAddress(publicKey, fmt = 'address') {
 	var address = utils_2.publicToAddress(publicKey, true);
 	if (fmt == 'binary') {
 		return address; // binary
 	}	else {
-		address = address.toString('hex');
-		var addressHash = keccak(address).hex.slice(2);
-		var checksumAddress = '';
-		for (var i = 0; i < 40; i++) {
-			checksumAddress += parseInt(addressHash[i], 16) > 7 ? 
-				address[i].toUpperCase() : address[i];
-		}
-		return fmt == 'address' ? '0x' + checksumAddress: checksumAddress;
+		address = toChecksumAddress(address);
+		return fmt == 'address' ? '0x' + address: address;
 	}
 }
 
@@ -239,11 +244,33 @@ async function decryptECIES(privateKey, options) {
 	return result;
 }
 
-module.exports = {
+function publicKeyConvertDetails(public_key) {
+	public_key = utils_2.toBuffer(public_key);
+	var publicKeyLong = secp256k1.publicKeyConvert(public_key, false);
+	var publicKey = secp256k1.publicKeyConvert(publicKeyLong);
+	var address = publicToAddress(publicKeyLong, 'binary');
+	var publicKeyHex = publicKey.toString('hex');
+	var publicKeyLongHex = publicKeyLong.toString('hex');
+	var addressHex = toChecksumAddress(address);
+	return {
+		publicKeyBytes: publicKey,
+		publicKeyLongBytes: publicKeyLong,
+		addressBytes: address,
+		publicKey: '0x' + publicKeyHex,
+		publicKeyLong: '0x' + publicKeyLongHex,
+		address: '0x' + addressHex,
+		publicKeyHex: publicKeyHex,
+		publicKeyLongHex: publicKeyLongHex,
+		addressHex: addressHex,
+	};
+}
+
+module.exports = Object.assign({
 	genPrivateKey,
 	getPublic,
 	publicToAddress,
 	getAddress,
+	toChecksumAddress,
 	secp256k1,
 	publicKeyConvert: secp256k1.publicKeyConvert,
 	toBuffer: utils_2.toBuffer,
@@ -258,5 +285,5 @@ module.exports = {
 	decryptECIES,
 	assert,
 	keccak,
-	...tx,
-};
+	publicKeyConvertDetails,
+}, tx);
