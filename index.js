@@ -43,6 +43,7 @@ if (utils.haveNode) {
 	var hash_js = require('hash.js');
 	var browserCrypto = global.crypto || global.msCrypto || {};
 	var subtle = browserCrypto.subtle || browserCrypto.webkitSubtle;
+	utils.assert(subtle, `not find web crypto.subtle`);
 }
 
 var EC_GROUP_ORDER = Buffer.from(
