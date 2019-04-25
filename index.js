@@ -73,7 +73,7 @@ function getRandomValues(len) {
 	if (crypto) { // node
 		return crypto.randomBytes(len);
 	} else { // web
-		return new Buffer(crypto.getRandomValues(new Uint8Array(len)));
+		return new Buffer(browserCrypto.getRandomValues(new Uint8Array(len)));
 	}
 }
 
