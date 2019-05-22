@@ -138,6 +138,7 @@ async function main() {
 			privateKey: '0x' + privateKey.toString('hex'),
 			publicKey: '0x' + publicKey_0.toString('hex'),
 			publicKey1: '0x' + publicKey_1.toString('hex'),
+			address: crypto.publicToAddress(publicKey_0),
 		};
 		if (opts.json) {
 			console.log(JSON.stringify(result));
@@ -145,6 +146,7 @@ async function main() {
 			console.log('privateKey:', result.privateKey);
 			console.log('publicKey:', result.publicKey);
 			console.log('publicKey1:', result.publicKey1);
+			console.log('address:', result.address);
 		}
 	} else if (opts.C) {
 		if (!opts.p)
