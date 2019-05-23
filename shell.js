@@ -41,7 +41,7 @@ var def_opts = arguments.defOpts;
 def_opts(['E'],         0,   '-E   cmd encryptECIES [{0}]');
 def_opts(['D'],         0,   '-D   cmd decryptECIES [{0}]');
 def_opts(['G'],         0,   '-G   cmd gen private and public keys [{0}]');
-def_opts(['C'],         0,   '-G   cmd public key convert [{0}]');
+def_opts(['C'],         0,   '-C   cmd public key convert [{0}]');
 def_opts(['k'],         '',  '-k   privateKey hex');
 def_opts(['p'],         '',  '-p   publicKey hex');
 def_opts(['d'],         '',  '-d   encrypt or decrypt data');
