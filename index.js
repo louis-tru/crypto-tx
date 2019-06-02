@@ -78,10 +78,9 @@ function getRandomValues(len) {
 }
 
 function genPrivateKey() {
-	var privateKey = getRandomValues(32);
-	while (!isValidPrivateKey(privateKey)) {
-		privateKey = getRandomValues(32);
-	}
+	do {
+		var privateKey = getRandomValues(32);
+	} while (!isValidPrivateKey(privateKey));
 	return privateKey;
 }
 
