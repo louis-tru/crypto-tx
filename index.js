@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var utils = require('qkit');
+var utils = require('langoukit');
 var { Buffer } = require('buffer');
 var tx = require('./tx');
 var { keccak } = require('./keccak');
