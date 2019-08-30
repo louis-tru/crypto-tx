@@ -265,6 +265,29 @@ function publicKeyConvertDetails(public_key) {
 	};
 }
 
+function checkAddressHex(addressHex) {
+	if (typeof addressHex == 'string') {
+		if (addressHex.length == 22 && addressHex[0] == '0' && addressHex[1] == 'x') {
+			var _0 = '0'.charCodeAt(0), _9 = '9'.charCodeAt(0);
+			var _a = 'a'.charCodeAt(0), _f = 'f'.charCodeAt(0);
+			var _A = 'A'.charCodeAt(0), _F = 'F'.charCodeAt(0);
+
+			for (var i = 2; i < 22; i++) {
+				var code = addressHex.charCodeAt(i);
+				if (!(
+					(_0 >= code && code <= _9) || 
+					(_a >= code && code <= _f) || 
+					(_A >= code && code <= _F))
+				) {
+					return false
+				}
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
 module.exports = Object.assign({
 	genPrivateKey,
 	getPublic,
@@ -286,4 +309,5 @@ module.exports = Object.assign({
 	assert,
 	keccak,
 	publicKeyConvertDetails,
+	checkAddressHex,
 }, tx);
