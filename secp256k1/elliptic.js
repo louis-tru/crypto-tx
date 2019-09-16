@@ -30,7 +30,7 @@
 
 'use strict';
 
-var utils = require('lkit');
+var utils = require('nxkit');
 var Buffer = require('buffer').Buffer;
 var BN = require('bn.js');
 var EC = require('elliptic').ec;

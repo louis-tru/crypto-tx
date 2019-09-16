@@ -31,7 +31,7 @@
 
 var crypto = require('./index');
 var assert = require('./assert');
-var arguments = require('lkit/arguments');
+var arguments = require('nxkit/arguments');
 var toBuffer = require('./utils').toBuffer;
 var opts = arguments.options;
 var help_info = arguments.helpInfo;

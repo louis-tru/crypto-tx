@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var utils = require('lkit');
+var utils = require('nxkit');
 var { Buffer } = require('buffer');
 var tx = require('./tx');
 var { keccak } = require('./keccak');
