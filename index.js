@@ -275,10 +275,10 @@ function checkAddressHex(addressHex) {
 			for (var i = 2; i < 42; i++) {
 				var code = addressHex.charCodeAt(i);
 				if (!(
-					(_0 >= code && code <= _9) || 
-					(_a >= code && code <= _f) || 
-					(_A >= code && code <= _F))
-				) {
+					(_0 <= code && code <= _9) || 
+					(_a <= code && code <= _f) || 
+					(_A <= code && code <= _F)
+				)) {
 					return false
 				}
 			}
