@@ -1,6 +1,6 @@
 {
 	"name": "crypto-tx",
-	"version": "0.1.43",
+	"version": "0.1.44",
 	"main": "index.js",
 	"author": "louistru@hotmail.com",
 	"bin": {
@@ -11,6 +11,6 @@
 		"hash.js": "~1.1.7",
 		"buffer": "~5.2.1",
 		"elliptic": "~6.2.3",
-		"nxkit": "~0.9.21"
+		"nxkit": "~0.9.23"
 	}
 }
