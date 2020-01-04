@@ -28,11 +28,26 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var assert = require('assert');
-var secp256k1 = require('./secp256k1');
-var { Buffer } = require('buffer');
-var BN = require('bn.js');
-var keccak_0 = require("./keccak").keccak;
+const utils = require('nxkit');
+const assert = require('assert');
+const secp256k1 = require('./secp256k1');
+const { Buffer } = require('buffer');
+const BN = require('bn.js');
+const keccak_0 = require("./keccak").keccak;
+
+if (utils.haveNode) {
+	var crypto = require('crypto');
+} else {
+	var browserCrypto = global.crypto || global.msCrypto || {};
+}
+
+function getRandomValues(len) {
+	if (crypto) { // node
+		return crypto.randomBytes(len);
+	} else { // web
+		return new Buffer(browserCrypto.getRandomValues(new Uint8Array(len)));
+	}
+}
 
 /**
  * RLP Encoding based on: https://github.com/ethereum/wiki/wiki/%5BEnglish%5D-RLP
@@ -481,23 +496,29 @@ function intToBuffer(i) {
 	return new Buffer(padToEven(hex.slice(2)), 'hex');
 }
 
-exports.rlp_encode = rlp_encode;
-exports.rlp_decode = rlp_decode;
-exports.rlp_getLength = rlp_getLength;
-exports.keccak = keccak;
-exports.rlphash = rlphash;
-exports.ecsign = ecsign;
-exports.ecrecover = ecrecover;
-exports.pubToAddress = exports.publicToAddress = publicToAddress;
-exports.zeros = zeros;
-exports.setLengthLeft = exports.setLength = setLength;
-exports.bufferToInt = bufferToInt;
-exports.isHexPrefixed = isHexPrefixed;
-exports.stripHexPrefix = stripHexPrefix;
-exports.padToEven = padToEven;
-exports.isHexString = isHexString;
-exports.toBuffer = toBuffer;
-exports.baToJSON = baToJSON;
-exports.intToHex = intToHex;
-exports.unpad = exports.stripZeros = stripZeros;
-exports.intToBuffer = intToBuffer;
+module.exports = {
+	getRandomValues,// = getRandomValues;
+	rlp_encode,// = rlp_encode;
+	rlp_decode,// = rlp_decode;
+	rlp_getLength,// = rlp_getLength;
+	keccak,// = keccak;
+	rlphash,// = rlphash;
+	ecsign,// = ecsign;
+	ecrecover,// = ecrecover;
+	publicToAddress,
+	pubToAddress: publicToAddress,// = exports.publicToAddress = publicToAddress;
+	zeros,// = zeros;
+	setLength,
+	setLengthLeft: setLength,// = exports.setLength = setLength;
+	bufferToInt,// = bufferToInt;
+	isHexPrefixed,// = isHexPrefixed;
+	stripHexPrefix,// = stripHexPrefix;
+	padToEven,// = padToEven;
+	isHexString,// = isHexString;
+	toBuffer,// = toBuffer;
+	baToJSON,// = baToJSON;
+	intToHex,// = intToHex;
+	unpad: stripZeros,// = exports.stripZeros = stripZeros;
+	stripZeros,
+	intToBuffer,// = intToBuffer;
+};

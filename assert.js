@@ -81,3 +81,7 @@ assert.isLengthGTZero = function (value, message) {
 assert.isNumberInInterval = function (number, x, y, message) {
 	if (number <= x || number >= y) throw RangeError(message)
 }
+
+assert.isString = function (s, message) {
+	if (typeof s != 'string') throw TypeError(message)
+}
