@@ -28,8 +28,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const utils = require('nxkit');
-const uuid = require('nxkit/hash/uuid');
+const utils = require('nxkit').default;
+const uuid = require('nxkit/hash/uuid').default;
 const scrypt = require('@web3-js/scrypt-shim'); // TODO
 const assert = require('./assert');
 const keccak = require('./keccak');

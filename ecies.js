@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var utils = require('nxkit');
+var utils = require('nxkit').default;
 var { Buffer } = require('buffer');
 var secp256k1 = require('./secp256k1');
 var assert = require('./assert');
@@ -119,7 +119,7 @@ async function encryptECIES(publicKeyTo, message, options) {
 	var ephemPrivateKey = options.ephemPrivateKey || account.genPrivateKey();
 	assert(account.isValidPrivateKey(ephemPrivateKey), 'Bad private key invalid');
 
-	var ephemPublicKey = getPublic(ephemPrivateKey);
+	var ephemPublicKey = account.getPublic(ephemPrivateKey);
 	var px = ecdh(publicKeyTo, ephemPrivateKey);
 	var hash = sha512(px);
 	var iv = options.iv ? utils_2.toBuffer(options.iv): account.getRandomValues(16);
