@@ -38,14 +38,15 @@ var help_info = arguments.helpInfo;
 var def_opts = arguments.defOpts;
 
 // def_opts(['help', 'h'], 0,   '-h   print help info');
-def_opts(['E'],         0,   '-E   cmd encryptECIES [{0}]');
-def_opts(['D'],         0,   '-D   cmd decryptECIES [{0}]');
-def_opts(['G'],         0,   '-G   cmd gen private and public keys [{0}]');
-def_opts(['C'],         0,   '-C   cmd public key convert [{0}]');
-def_opts(['k'],         '',  '-k   privateKey hex');
-def_opts(['p'],         '',  '-p   publicKey hex');
-def_opts(['d'],         '',  '-d   encrypt or decrypt data');
-def_opts(['iv'],        '',  '-iv  IV 16 bytes hex');
+def_opts(['E'],         0,   '-E    cmd encryptECIES [{0}]');
+def_opts(['D'],         0,   '-D    cmd decryptECIES [{0}]');
+def_opts(['G'],         0,   '-G    cmd gen private and public keys [{0}]');
+def_opts(['C'],         0,   '-C    cmd public key convert [{0}]');
+def_opts(['k'],         '',  '-k    privateKey hex');
+def_opts(['p'],         '',  '-p    publicKey hex');
+def_opts(['d'],         '',  '-d    encrypt or decrypt data');
+def_opts(['hash'],      '',  '-hash length 256 hash data');
+def_opts(['iv'],        '',  '-iv   IV 16 bytes hex');
 def_opts(['json'],       0,  '-json convert json [{0}]');
 
 function printHelp(code = -1) {
@@ -58,6 +59,8 @@ function printHelp(code = -1) {
 	process.stdout.write(
 		'  crypto-tx -D '+
 		'-k privateKey -p ephemPublicKey -d ciphertext -iv value \n');
+	process.stdout.write(
+		'  crypto-tx -S -k privateKey -d data [-json] \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -119,6 +122,22 @@ async function decrypt() {
 	console.log('0x' + r.toString('hex'));
 }
 
+async function sign() {
+	if (!opts.k || (!opts.d && !opts.hash))
+		printHelp();
+
+	var privateKey = toBuffer(opts.k);
+	var data = opts.d ? toBuffer(crypto.keccak(toBuffer(opts.d)).hex): toBuffer(opts.hash);
+
+	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
+	assert.isBufferLength(data, 32, 'Bad data length');
+
+	var signature = crypto.sign(data, privateKey);
+	var signature_buf = Buffer.concat([signature.signature, Buffer.from([signature.recovery])]);
+
+	console.log('0x' + signature_buf.toString('hex'));
+}
+
 async function main() {
 
 	if (opts.E) {
@@ -158,6 +177,8 @@ async function main() {
 
 		console.log('publicKey:', '0x' + public_key_0.toString('hex'));
 		console.log('publicKeyLong:', '0x' + public_key_1.toString('hex'));
+	} else if (opts.S) {
+		sign();
 	} else {
 		printHelp(0);
 	}
