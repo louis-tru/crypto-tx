@@ -154,6 +154,7 @@ async function main() {
 		var publicKey_0 = crypto.getPublic(privateKey);
 		var publicKey_1 = crypto.getPublic(privateKey, true);
 		var result = {
+			private: privateKey.toString('base64'),
 			privateKey: '0x' + privateKey.toString('hex'),
 			publicKey: '0x' + publicKey_0.toString('hex'),
 			publicKey1: '0x' + publicKey_1.toString('hex'),
@@ -162,6 +163,7 @@ async function main() {
 		if (opts.json) {
 			console.log(JSON.stringify(result));
 		} else {
+			console.log('private:', result.private);
 			console.log('privateKey:', result.privateKey);
 			console.log('publicKey:', result.publicKey);
 			console.log('publicKey1:', result.publicKey1);
