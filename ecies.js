@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var utils = require('nxkit').default;
+var utils = require('somes').default;
 var { Buffer } = require('buffer');
 var secp256k1 = require('./secp256k1');
 var assert = require('./assert');
