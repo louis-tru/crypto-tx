@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var Buffer = require('buffer').Buffer
+var Buffer = require('buffer').Buffer;
 
 function check (buffer) {
 	if (buffer.length < 8) return false
