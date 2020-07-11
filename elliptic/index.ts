@@ -3,7 +3,6 @@
 var elliptic = exports;
 
 export * from './utils'; // elliptic.utils = require('./utils');
-elliptic.rand = require('brorand');
 elliptic.hmacDRBG = require('./hmac-drbg');
 elliptic.curve = require('./curve');
 elliptic.curves = require('./curves');

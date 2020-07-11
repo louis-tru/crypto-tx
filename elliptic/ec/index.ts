@@ -1,8 +1,7 @@
-'use strict';
 
 var BN = require('bn.js');
-var elliptic = require('../../elliptic');
 
+import {rng} from 'somes/rng';
 import curves, {PresetCurve, Type, Curve} from '../curves'
 import * as utils from '../utils';
 import KeyPair from './key';
@@ -19,8 +18,8 @@ interface Options {
 export default class EC {
 
 	curve: Curve;
-	n: any;
-	nh: any;
+	n: bigint;
+	nh: bigint;
 	g: any;
 	hash: any;
 
@@ -74,7 +73,7 @@ export default class EC {
 		var drbg = new HmacDRBG({
 			hash: this.hash,
 			pers: options.pers,
-			entropy: options.entropy || elliptic.rand(this.hash.hmacStrength),
+			entropy: options.entropy || rng(this.hash.hmacStrength),
 			nonce: this.n.toArray()
 		});
 

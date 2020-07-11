@@ -1,8 +1,8 @@
-'use strict';
 
 var hash = require('hash.js');
-import hash_ from 'somes/hash';
+
 import * as utils from './utils';
+
 const assert = utils.assert;
 
 export default class HmacDRBG {

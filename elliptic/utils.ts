@@ -8,10 +8,10 @@ export function assert(val: any, msg?: string) {
 
 export function toArray(msg: any, enc?: string) {
 	if (Array.isArray(msg))
-		return msg.slice();
+		return msg.slice() as number[];
 	if (!msg)
-		return [];
-	var res = [];
+		return [] as number[];
+	var res: number[] = [];
 	if (typeof msg !== 'string') {
 		for (var i = 0; i < msg.length; i++)
 			res[i] = msg[i] | 0;
@@ -51,8 +51,8 @@ export function toArray(msg: any, enc?: string) {
 // 	return res;
 // }
 
-export function encode(arr: IBuffer, enc?: string): string {
-	return arr.toString(enc);
+export function encode(arr: ArrayLike<number>, enc?: string): string {
+	return buffer.from(arr).toString(enc);
 }
 
 function andln(self: bigint, num: number) {
