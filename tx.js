@@ -28,7 +28,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var { Buffer } = require('buffer');
+var _buffer = require('somes/buffer');
+var buffer = _buffer.default;
 var utils = require('./utils');
 var fees = require('./fees');
 var BN = require('bn.js');
@@ -84,7 +85,7 @@ function defineProperties(self, fields, data) {
 			v = utils.toBuffer(v);
 
 			if (v.toString('hex') === '00' && !field.allowZero) {
-				v = Buffer.allocUnsafe(0);
+				v = buffer.allocUnsafe(0);
 			}
 
 			if (field.allowLess && field.length) {
@@ -125,10 +126,10 @@ function defineProperties(self, fields, data) {
 	// if the constuctor is passed data
 	if (data) {
 		if (typeof data === 'string') {
-			data = Buffer.from(utils.stripHexPrefix(data), 'hex');
+			data = buffer.from(utils.stripHexPrefix(data), 'hex');
 		}
 
-		if (Buffer.isBuffer(data)) {
+		if (_buffer.isTypedArray(data)) {
 			data = utils.rlp_decode(data);
 		}
 
@@ -156,6 +157,8 @@ function defineProperties(self, fields, data) {
 	}
 }
 
+
+
 /**
  * @class Transaction
  */
@@ -169,49 +172,49 @@ class Transaction {
 				name: 'nonce',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}, {
 				name: 'gasPrice',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}, {
 				name: 'gasLimit',
 				alias: 'gas',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}, {
 				name: 'to',
 				allowZero: true,
 				length: 20,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}, {
 				name: 'value',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}, {
 				name: 'data',
 				alias: 'input',
 				allowZero: true,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}, {
 				name: 'v',
 				allowZero: true,
-				default: new Buffer([0x1c])
+				default: buffer.from([0x1c])
 			}, {
 				name: 'r',
 				length: 32,
 				allowZero: true,
 				allowLess: true,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}, {
 				name: 's',
 				length: 32,
 				allowZero: true,
 				allowLess: true,
-				default: new Buffer([])
+				default: _buffer.Zero
 			}
 		];
 

@@ -30,9 +30,10 @@
 
 'use strict';
 
-var Buffer = require('buffer').Buffer;
+const _buffer = require('somes/buffer');
+// const buffer = _buffer.default;
 
-var toString = Object.prototype.toString;
+const toString = Object.prototype.toString;
 
 function assert(value, message) {
 	if (!value) throw Error(message);
@@ -50,7 +51,7 @@ assert.isBoolean = function (value, message) {
 }
 
 assert.isBuffer = function (value, message) {
-	if (!Buffer.isBuffer(value)) throw TypeError(message)
+	if (!_buffer.isTypedArray(value)) throw TypeError(message)
 }
 
 assert.isFunction = function (value, message) {

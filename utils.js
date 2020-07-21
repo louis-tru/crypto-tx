@@ -31,7 +31,8 @@
 const utils = require('somes').default;
 const assert = require('assert');
 const secp256k1 = require('./secp256k1');
-const { Buffer } = require('buffer');
+const _buffer = require('somes/buffer');
+const buffer = _buffer.buffer;
 const BN = require('bn.js');
 const keccak_0 = require("./keccak").keccak;
 
@@ -45,7 +46,7 @@ function getRandomValues(len) {
 	if (crypto) { // node
 		return crypto.randomBytes(len);
 	} else { // web
-		return new Buffer(browserCrypto.getRandomValues(new Uint8Array(len)));
+		return buffer.from(browserCrypto.getRandomValues(new Uint8Array(len)));
 	}
 }
 
@@ -62,14 +63,14 @@ function rlp_encode(input) {
 		for (var i = 0; i < input.length; i++) {
 			output.push(rlp_encode(input[i]))
 		}
-		var buf = Buffer.concat(output)
-		return Buffer.concat([rlp_encodeLength(buf.length, 192), buf])
+		var buf = buffer.concat(output)
+		return buffer.concat([rlp_encodeLength(buf.length, 192), buf])
 	} else {
 		input = toBuffer(input)
 		if (input.length === 1 && input[0] < 128) {
 			return input
 		} else {
-			return Buffer.concat([rlp_encodeLength(input.length, 128), input])
+			return buffer.concat([rlp_encodeLength(input.length, 128), input])
 		}
 	}
 }
@@ -81,7 +82,7 @@ function rlp_encode(input) {
  **/
 function rlp_decode(input, stream) {
 	if (!input || input.length === 0) {
-		return Buffer.from([])
+		return buffer.from([])
 	}
 
 	input = toBuffer(input)
@@ -113,7 +114,7 @@ function _rlp_decode (input) {
 
 		// set 0x80 null to 0
 		if (firstByte === 0x80) {
-			data = Buffer.from([])
+			data = buffer.from([])
 		} else {
 			data = input.slice(1, length)
 		}
@@ -188,18 +189,18 @@ function rpl_intToHex(i) {
 
 function rlp_encodeLength (len, offset) {
 	if (len < 56) {
-		return Buffer.from([len + offset])
+		return buffer.from([len + offset])
 	} else {
 		var hexLength = rpl_intToHex(len)
 		var lLength = hexLength.length / 2
 		var firstByte = rpl_intToHex(offset + 55 + lLength)
-		return Buffer.from(firstByte + hexLength, 'hex')
+		return buffer.from(firstByte + hexLength, 'hex')
 	}
 }
 
 function rlp_getLength(input) {
 	if (!input || input.length === 0) {
-		return Buffer.from([])
+		return buffer.from([])
 	}
 	input = toBuffer(input)
 	var firstByte = input[0]
@@ -237,7 +238,7 @@ function keccak(a, bits) {
 	a = toBuffer(a);
 	if (!bits) bits = 256;
 
-	return Buffer.from(keccak_0(a, bits).data);
+	return buffer.from(keccak_0(a, bits).data);
 }
 
 /**
@@ -246,7 +247,7 @@ function keccak(a, bits) {
  * @return {Buffer}
  */
 function rlphash(a) {
-	return Buffer.from(keccak_0(rlp_encode(a)).data);
+	return buffer.from(keccak_0(rlp_encode(a)).data);
 }
 
 /**
@@ -274,7 +275,7 @@ function ecsign(msgHash, privateKey) {
  * @return {Buffer} publicKey
  */
 function ecrecover(msgHash, v, r, s) {
-	var signature = Buffer.concat([setLength(r, 32), setLength(s, 32)], 64);
+	var signature = buffer.concat([setLength(r, 32), setLength(s, 32)], 64);
 	var recovery = v - 27;
 	if (recovery !== 0 && recovery !== 1) {
 		throw new Error('Invalid signature v value');
@@ -307,7 +308,7 @@ function publicToAddress(pubKey, sanitize) {
  * @return {Buffer}
  */
 function zeros(bytes) {
-	return Buffer.allocUnsafe(bytes).fill(0);
+	return buffer.allocUnsafe(bytes).fill(0);
 }
 
 /**
@@ -419,24 +420,24 @@ function isHexString(value, length) {
  * @param {*} v the value
  */
 function toBuffer(v) {
-	if (!Buffer.isBuffer(v)) {
+	if (!_buffer.isTypedArray(v)) {
 		if (Array.isArray(v)) {
-			v = Buffer.from(v);
+			v = buffer.from(v);
 		} else if (typeof v === 'string') {
 			if (isHexString(v)) {
-				v = Buffer.from(padToEven(stripHexPrefix(v)), 'hex');
+				v = buffer.from(padToEven(stripHexPrefix(v)), 'hex');
 			} else {
-				v = Buffer.from(v);
+				v = buffer.from(v);
 			}
 		} else if (typeof v === 'number') {
 			v = intToBuffer(v);
 		} else if (v === null || v === undefined) {
-			v = Buffer.allocUnsafe(0);
+			v = buffer.allocUnsafe(0);
 		} else if (BN.isBN(v)) {
-			v = v.toArrayLike(Buffer);
+			v = v.toArrayLike(Uint8Array);
 		} else if (v.toArray) {
 			// converts a BN to a Buffer
-			v = Buffer.from(v.toArray());
+			v = buffer.from(v.toArray());
 		} else {
 			throw new Error('invalid type');
 		}
@@ -450,7 +451,7 @@ function toBuffer(v) {
  * @return {Array|String|null}
  */
 function baToJSON(ba) {
-	if (Buffer.isBuffer(ba)) {
+	if (_buffer.isTypedArray(ba)) {
 		return '0x' + ba.toString('hex');
 	} else if (ba instanceof Array) {
 		var array = [];

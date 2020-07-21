@@ -30,10 +30,10 @@
 
 'use strict'
 
-var Buffer = require('buffer').Buffer;
+var buffer = require('somes/buffer').default;
 var bip66 = require('./bip66')
 
-var EC_PRIVKEY_EXPORT_DER_COMPRESSED = Buffer.from([
+var EC_PRIVKEY_EXPORT_DER_COMPRESSED = buffer.from([
 	// begin
 	0x30, 0x81, 0xd3, 0x02, 0x01, 0x01, 0x04, 0x20,
 	// private key
@@ -55,7 +55,7 @@ var EC_PRIVKEY_EXPORT_DER_COMPRESSED = Buffer.from([
 	0x00
 ])
 
-var EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED = Buffer.from([
+var EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED = buffer.from([
 	// begin
 	0x30, 0x82, 0x01, 0x13, 0x02, 0x01, 0x01, 0x04, 0x20,
 	// private key
@@ -82,7 +82,7 @@ var EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED = Buffer.from([
 ])
 
 exports.privateKeyExport = function (privateKey, publicKey, compressed) {
-	var result = Buffer.from(compressed ? 
+	var result = buffer.from(compressed ? 
 		EC_PRIVKEY_EXPORT_DER_COMPRESSED : EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED)
 	privateKey.copy(result, compressed ? 8 : 9)
 	publicKey.copy(result, compressed ? 181 : 214)
@@ -131,11 +131,11 @@ exports.privateKeyImport = function (privateKey) {
 }
 
 exports.signatureExport = function (sigObj) {
-	var r = Buffer.concat([Buffer.from([0]), sigObj.r])
+	var r = buffer.concat([Buffer.from([0]), sigObj.r])
 	for (var lenR = 33, posR = 0; 
 		lenR > 1 && r[posR] === 0x00 && !(r[posR + 1] & 0x80); --lenR, ++posR);
 
-	var s = Buffer.concat([Buffer.from([0]), sigObj.s])
+	var s = buffer.concat([buffer.from([0]), sigObj.s])
 	for (var lenS = 33, posS = 0; 
 		lenS > 1 && s[posS] === 0x00 && !(s[posS + 1] & 0x80); --lenS, ++posS);
 
@@ -143,8 +143,8 @@ exports.signatureExport = function (sigObj) {
 }
 
 exports.signatureImport = function (sig) {
-	var r = Buffer.alloc(32, 0)
-	var s = Buffer.alloc(32, 0)
+	var r = buffer.alloc(32, 0)
+	var s = buffer.alloc(32, 0)
 
 	try {
 		var sigObj = bip66.decode(sig)
@@ -163,8 +163,8 @@ exports.signatureImport = function (sig) {
 }
 
 exports.signatureImportLax = function (sig) {
-	var r = Buffer.alloc(32, 0)
-	var s = Buffer.alloc(32, 0)
+	var r = buffer.alloc(32, 0)
+	var s = buffer.alloc(32, 0)
 
 	var length = sig.length
 	var index = 0
