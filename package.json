@@ -10,7 +10,7 @@
 		"bn.js": "~4.11.0",
 		"hash.js": "~1.1.7",
 		"elliptic": "~6.2.3",
-		"somes": "~0.10.70",
+		"somes": "~0.10.72",
 		"@web3-js/scrypt-shim": "~0.1.0",
 		"crypto-browserify": "~3.12.0"
 	}

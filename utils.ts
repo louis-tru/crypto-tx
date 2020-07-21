@@ -28,13 +28,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const utils = require('somes').default;
-const assert = require('assert');
-const secp256k1 = require('./secp256k1');
-const _buffer = require('somes/buffer');
-const buffer = _buffer.buffer;
-const BN = require('bn.js');
-const keccak_0 = require("./keccak").keccak;
+import utils from 'somes';
+import assert from 'assert';
+import secp256k1 from './secp256k1';
+import buffer from 'somes/buffer';
+import BN from 'bn.js';
+import {keccak as sha3} from './keccak';
 
 if (utils.haveNode) {
 	var crypto = require('crypto');

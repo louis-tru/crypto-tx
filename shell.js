@@ -32,6 +32,7 @@
 var crypto = require('./index');
 var assert = require('./assert');
 var arguments = require('somes/arguments');
+var buffer = require('somes/buffer').default;
 var toBuffer = require('./utils').toBuffer;
 var opts = arguments.options;
 var help_info = arguments.helpInfo;
@@ -88,7 +89,7 @@ async function encrypt() {
 	var result = {
 		ciphertext: '0x' + ciphertext.toString('hex'),
 		ephemPublicKey: '0x' + publicKey.toString('hex'),
-		iv: '0x' + Buffer.from(iv).toString('hex'),
+		iv: '0x' + buffer.from(iv).toString('hex'),
 		mac: '0x' + mac.toString('hex'),
 	};
 
@@ -133,7 +134,7 @@ async function sign() {
 	assert.isBufferLength(data, 32, 'Bad data length');
 
 	var signature = crypto.sign(data, privateKey);
-	var signature_buf = Buffer.concat([signature.signature, Buffer.from([signature.recovery])]);
+	var signature_buf = buffer.concat([signature.signature, buffer.from([signature.recovery])]);
 
 	console.log('0x' + signature_buf.toString('hex'));
 }

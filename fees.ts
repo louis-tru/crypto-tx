@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-module.exports = {
+export default {
 	"genesisGasLimit": {
 		"v": 5000,
 		"d": "Gas limit of the Genesis block."

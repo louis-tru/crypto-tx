@@ -28,11 +28,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const buffer = require('somes/buffer').default;
-const { keccak } = require('./keccak');
-const secp256k1 = require('./secp256k1');
-const utils_2 = require('./utils');
-const rng = require('somes/rng');
+import buffer from 'somes/buffer';
+import { keccak } from './keccak';
+import secp256k1 from './secp256k1';
+import utils_2 from './utils';
+import {rng} from 'somes/rng';
 
 const EC_GROUP_ORDER = buffer.from(
 	'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141', 'hex');

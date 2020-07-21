@@ -28,61 +28,56 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-'use strict';
-
-const _buffer = require('somes/buffer');
-// const buffer = _buffer.default;
+import {isTypedArray} from 'somes/buffer';
 
 const toString = Object.prototype.toString;
 
-function assert(value, message) {
+export default function assert(value: any, message: any) {
 	if (!value) throw Error(message);
 }
 
-module.exports = assert;
-
 // TypeError
-assert.isArray = function (value, message) {
+export function isArray(value: any, message: any) {
 	if (!Array.isArray(value)) throw TypeError(message)
 }
 
-assert.isBoolean = function (value, message) {
+export function isBoolean(value: any, message: any) {
 	if (toString.call(value) !== '[object Boolean]') throw TypeError(message)
 }
 
-assert.isBuffer = function (value, message) {
-	if (!_buffer.isTypedArray(value)) throw TypeError(message)
+export function isBuffer(value: any, message: any) {
+	if (!isTypedArray(value)) throw TypeError(message)
 }
 
-assert.isFunction = function (value, message) {
+export function isFunction(value: any, message: any) {
 	if (toString.call(value) !== '[object Function]') throw TypeError(message)
 }
 
-assert.isNumber = function (value, message) {
+export function isNumber(value: any, message: any) {
 	if (toString.call(value) !== '[object Number]') throw TypeError(message)
 }
 
-assert.isObject = function (value, message) {
+export function isObject(value: any, message: any) {
 	if (toString.call(value) !== '[object Object]') throw TypeError(message)
 }
 
 // RangeError
-assert.isBufferLength = function (buffer, length, message) {
+export function isBufferLength(buffer: any, length: number, message: any) {
 	if (buffer.length !== length) throw RangeError(message)
 }
 
-assert.isBufferLength2 = function (buffer, length1, length2, message) {
+export function isBufferLength2(buffer: any, length1: number, length2: number, message: any) {
 	if (buffer.length !== length1 && buffer.length !== length2) throw RangeError(message)
 }
 
-assert.isLengthGTZero = function (value, message) {
+export function isLengthGTZero(value: any, message: any) {
 	if (value.length === 0) throw RangeError(message)
 }
 
-assert.isNumberInInterval = function (number, x, y, message) {
+export function isNumberInInterval(number: number, x: number, y: number, message: any) {
 	if (number <= x || number >= y) throw RangeError(message)
 }
 
-assert.isString = function (s, message) {
+export function isString(s: any, message: any) {
 	if (typeof s != 'string') throw TypeError(message)
 }

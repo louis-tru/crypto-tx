@@ -28,9 +28,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var buffer = require('somes/buffer').default;
+import buffer, {IBuffer} from 'somes/buffer';
 
-function check (buffer) {
+export function check(buffer: IBuffer) {
 	if (buffer.length < 8) return false
 	if (buffer.length > 72) return false
 	if (buffer[0] !== 0x30) return false
@@ -54,7 +54,7 @@ function check (buffer) {
 	return true
 }
 
-function decode (buffer) {
+export function decode(buffer: IBuffer) {
 	if (buffer.length < 8) throw new Error('DER sequence length is too short')
 	if (buffer.length > 72) throw new Error('DER sequence length is too long')
 	if (buffer[0] !== 0x30) throw new Error('Expected DER sequence')
@@ -105,7 +105,7 @@ function decode (buffer) {
  *  62300 => 0x00f35c
  * -62300 => 0xff0ca4
 */
-function encode (r, s) {
+export function encode(r: IBuffer, s: IBuffer) {
 	var lenR = r.length
 	var lenS = s.length
 	if (lenR === 0) throw new Error('R length is zero')
@@ -130,10 +130,4 @@ function encode (r, s) {
 	s.copy(signature, 6 + lenR)
 
 	return signature
-}
-
-module.exports = {
-	check: check,
-	decode: decode,
-	encode: encode
 }

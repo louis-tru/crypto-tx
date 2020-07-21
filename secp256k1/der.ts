@@ -28,10 +28,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-'use strict'
-
-var buffer = require('somes/buffer').default;
-var bip66 = require('./bip66')
+import buffer, {IBuffer} from 'somes/buffer';
+import * as bip66 from './bip66';
 
 var EC_PRIVKEY_EXPORT_DER_COMPRESSED = buffer.from([
 	// begin
@@ -81,7 +79,7 @@ var EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED = buffer.from([
 	0x00
 ])
 
-exports.privateKeyExport = function (privateKey, publicKey, compressed) {
+export function privateKeyExport(privateKey: IBuffer, publicKey: IBuffer, compressed?: boolean) {
 	var result = buffer.from(compressed ? 
 		EC_PRIVKEY_EXPORT_DER_COMPRESSED : EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED)
 	privateKey.copy(result, compressed ? 8 : 9)
@@ -89,7 +87,7 @@ exports.privateKeyExport = function (privateKey, publicKey, compressed) {
 	return result
 }
 
-exports.privateKeyImport = function (privateKey) {
+export function privateKeyImport(privateKey: IBuffer) {
 	var length = privateKey.length
 
 	// sequence header
@@ -130,7 +128,7 @@ exports.privateKeyImport = function (privateKey) {
 	return privateKey.slice(index + 2, index + 2 + privateKey[index + 1])
 }
 
-exports.signatureExport = function (sigObj) {
+export function signatureExport(sigObj) {
 	var r = buffer.concat([Buffer.from([0]), sigObj.r])
 	for (var lenR = 33, posR = 0; 
 		lenR > 1 && r[posR] === 0x00 && !(r[posR + 1] & 0x80); --lenR, ++posR);
@@ -142,9 +140,9 @@ exports.signatureExport = function (sigObj) {
 	return bip66.encode(r.slice(posR), s.slice(posS))
 }
 
-exports.signatureImport = function (sig) {
-	var r = buffer.alloc(32, 0)
-	var s = buffer.alloc(32, 0)
+export function signatureImport(sig) {
+	var r = buffer.alloc(32);
+	var s = buffer.alloc(32);
 
 	try {
 		var sigObj = bip66.decode(sig)
@@ -162,9 +160,9 @@ exports.signatureImport = function (sig) {
 	return { r: r, s: s }
 }
 
-exports.signatureImportLax = function (sig) {
-	var r = buffer.alloc(32, 0)
-	var s = buffer.alloc(32, 0)
+export function signatureImportLaxexport(sig) {
+	var r = buffer.alloc(32);
+	var s = buffer.alloc(32);
 
 	var length = sig.length
 	var index = 0
