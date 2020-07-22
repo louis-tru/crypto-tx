@@ -1,5 +1,5 @@
 
-var BN = require('bn.js');
+import BN from '../../bn';
 
 export default class KeyPair {
 

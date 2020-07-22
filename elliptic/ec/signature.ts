@@ -1,6 +1,5 @@
 
-const BN = require('bn.js');
-
+import BN from '../../bn';
 import * as utils from '../utils';
 import buffer from 'somes/buffer';
 

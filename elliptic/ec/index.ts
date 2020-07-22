@@ -1,6 +1,5 @@
 
-var BN = require('bn.js');
-
+import BN from '../../bn';
 import {rng} from 'somes/rng';
 import curves, {PresetCurve, Type, Curve} from '../curves'
 import * as utils from '../utils';

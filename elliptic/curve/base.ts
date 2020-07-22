@@ -1,37 +1,36 @@
 
 import * as utils from '../utils';
+import BN, {Red, MPrimeType} from '../../bn';
 
 const getNAF = utils.getNAF;
 const getJSF = utils.getJSF;
 const assert = utils.assert;
 
-const BN = require('bn.js');
-
-interface Options {
-	p: any;
-	g: any;
-	n: any;
-	gRed: any;
-	prime?: any;
+export interface BaseCurveOptions {
+	p: string;
+	g?: string;
+	n?: string;
+	gRed?: Red;
+	prime?: BN | MPrimeType;
 }
 
 export default abstract class BaseCurve {
 
 	type: string;
-	p: any;
-	red: any;
-	zero: any;
-	one: any;
-	two: any;
-	n: any;
-	g: any;
+	p: BN;
+	red: Red;
+	zero: BN;
+	one: BN;
+	two: BN;
+	n?: BN;
+	g?: any;
 
 	private _wnafT1: number[];
 	private _wnafT2: number[];
 	private _wnafT3: number[];
 	private _wnafT4: number[];
 
-	constructor(type: string, conf: Options) {
+	constructor(type: string, conf: BaseCurveOptions) {
 		this.type = type;
 		this.p = new BN(conf.p, 16);
 
@@ -44,8 +43,8 @@ export default abstract class BaseCurve {
 		this.two = new BN(2).toRed(this.red);
 
 		// Curve configuration, optional
-		this.n = conf.n && new BN(conf.n, 16);
-		this.g = conf.g && this.pointFromJSON(conf.g, conf.gRed);
+		if (conf.n) this.n = new BN(conf.n, 16);
+		if (conf.g) this.g = this.pointFromJSON(conf.g, conf.gRed);
 
 		// Temporary arrays
 		this._wnafT1 = new Array(4);
@@ -58,7 +57,7 @@ export default abstract class BaseCurve {
 	abstract point(): void;
 	abstract validate(): void;
 
-	protected _fixedNafMul(p, k) {
+	protected _fixedNafMul(p: BasePoint, k: BN) {
 		assert(p.precomputed);
 		var doubles = p._getDoubles();
 
@@ -90,7 +89,7 @@ export default abstract class BaseCurve {
 		return a.toP();
 	}
 
-	protected _wnafMul(p: BasePoint, k) {
+	protected _wnafMul(p: BasePoint, k: BN) {
 		var w = 4;
 
 		// Precompute window
@@ -277,17 +276,34 @@ export default abstract class BaseCurve {
 
 }
 
-export class BasePoint {
+interface Precomputed {
+	doubles: {
+		step: number;
+		points: BasePoint[];
+	};
+	naf: {
+		wnd: number;
+		points: BasePoint[];
+	};
+	beta: BasePoint | null;
+}
+
+export abstract class BasePoint {
 
 	curve: BaseCurve;
 	type: string;
-	precomputed: any;
+	precomputed: Precomputed | null;
 
 	constructor(curve: BaseCurve, type: string) {
 		this.curve = curve;
 		this.type = type;
 		this.precomputed = null;
 	}
+
+	abstract dbl(): BasePoint;
+	abstract add(arg: BasePoint | null): BasePoint;
+	abstract getX(): BN;
+	abstract getY(): BN;
 
 	eq(/*other*/) {
 		throw new Error('Not implemented');
@@ -297,11 +313,11 @@ export class BasePoint {
 		return this.curve.validate(this);
 	};
 
-	encodeCompressed(enc) {
+	encodeCompressed(enc?: utils.Encoding) {
 		return this.encode(enc, true);
 	};
 
-	private _encode(compact) {
+	private _encode(compact?: boolean) {
 		var len = this.curve.p.byteLength();
 		var x = this.getX().toArray('be', len);
 
@@ -311,28 +327,25 @@ export class BasePoint {
 		return [ 0x04 ].concat(x, this.getY().toArray('be', len)) ;
 	};
 
-	encode(enc, compact) {
+	encode(enc?: utils.Encoding, compact?: boolean) {
 		return utils.encode(this._encode(compact), enc);
 	};
 
-	precompute(power) {
+	precompute(power: number) {
 		if (this.precomputed)
 			return this;
 
-		var precomputed = {
-			doubles: null,
-			naf: null,
-			beta: null
+		var precomputed: Precomputed = {
+			naf: this._getNAFPoints(8),
+			doubles: this._getDoubles(4, power),
+			beta: this._getBeta(),
 		};
-		precomputed.naf = this._getNAFPoints(8);
-		precomputed.doubles = this._getDoubles(4, power);
-		precomputed.beta = this._getBeta();
 		this.precomputed = precomputed;
 
 		return this;
 	};
 
-	_hasDoubles(k) {
+	private _hasDoubles(k: BN) {
 		if (!this.precomputed)
 			return false;
 
@@ -343,12 +356,12 @@ export class BasePoint {
 		return doubles.points.length >= Math.ceil((k.bitLength() + 1) / doubles.step);
 	};
 
-	_getDoubles(step, power) {
+	private _getDoubles(step: number, power: number) {
 		if (this.precomputed && this.precomputed.doubles)
 			return this.precomputed.doubles;
 
-		var doubles = [ this ];
-		var acc = this;
+		var doubles: BasePoint[] = [ this ];
+		var acc: BasePoint = this;
 		for (var i = 0; i < power; i += step) {
 			for (var j = 0; j < step; j++)
 				acc = acc.dbl();
@@ -360,11 +373,11 @@ export class BasePoint {
 		};
 	};
 
-	_getNAFPoints(wnd) {
+	private _getNAFPoints(wnd: number) {
 		if (this.precomputed && this.precomputed.naf)
 			return this.precomputed.naf;
 
-		var res = [ this ];
+		var res: BasePoint[] = [ this ];
 		var max = (1 << wnd) - 1;
 		var dbl = max === 1 ? null : this.dbl();
 		for (var i = 1; i < max; i++)
@@ -375,12 +388,12 @@ export class BasePoint {
 		};
 	};
 
-	_getBeta() {
+	protected _getBeta(): BasePoint | null {
 		return null;
 	};
 
-	dblp(k) {
-		var r = this;
+	dblp(k: number) {
+		var r: BasePoint = this;
 		for (var i = 0; i < k; i++)
 			r = r.dbl();
 		return r;

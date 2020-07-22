@@ -1,12 +1,13 @@
 
-import buffer, {IBuffer} from 'somes/buffer';
+import buffer, {IBuffer,IBufferEncoding} from 'somes/buffer';
+import BN from '../bn';
 
 export function assert(val: any, msg?: string) {
 	if (!val)
 		throw new Error(msg || 'Assertion failed');
 };
 
-export function toArray(msg: any, enc?: 'hex') {
+export function toArray(msg: number[] | string | object, enc?: 'hex') {
 	if (Array.isArray(msg))
 		return msg.slice() as number[];
 	if (!msg)
@@ -56,63 +57,57 @@ export function toArray(msg: any, enc?: 'hex') {
 // 	return res;
 // }
 
-export function encode(arr: ArrayLike<number>, enc?: string): string {
+export type Encoding = IBufferEncoding;
+
+export function encode(arr: ArrayLike<number>, enc?: Encoding): string {
 	return buffer.from(arr).toString(enc);
 }
 
-function andln(self: bigint, num: number) {
-	return Number(self & BigInt(2**26)) & num;
-}
-
-function iushrn(self: bigint, num: number) {
-	return self >> BigInt(num);
-}
-
 // Represent num in a w-NAF form
-export function getNAF(num: bigint, w: number) {
+export function getNAF(num: BN, w: number) {
 	var naf: number[] = [];
 	var ws = 1 << (w + 1);
-	var k = num;//num.clone();
-	while (k > 0 /* k.cmpn(1) >= 0*/) {
+	var k = num.clone();
+	while (k.cmpn(1) >= 0) {
 		var z;
-		if (k % BigInt(1) == 1 as any) {
-			var mod = andln(k, ws - 1);
+		if (k.isOdd()) {
+			var mod = k.andln(ws - 1);
 			if (mod > (ws >> 1) - 1)
 				z = (ws >> 1) - mod;
 			else
 				z = mod;
-			k -= BigInt(z);//k.isubn(z);
+			k.isubn(z);
 		} else {
 			z = 0;
 		}
 		naf.push(z);
 
 		// Optimization, shift by word if possible
-		var shift = (k != BigInt(0)/*k.cmpn(0) !== 0*/ && andln(k, ws - 1) === 0) ? (w + 1) : 1;
+		var shift = (k.cmpn(0) !== 0 && k.andln(ws - 1) === 0) ? (w + 1) : 1;
 		for (var i = 1; i < shift; i++)
 			naf.push(0);
-		k = iushrn(k, shift);
+			k.iushrn(shift);
 	}
 
 	return naf;
 }
 
 // Represent k1, k2 in a Joint Sparse Form
-export function getJSF(k1: bigint, k2: bigint) {
+export function getJSF(k1: BN, k2: BN) {
 	var jsf = [
 		[] as number[],
-		[] as number[],
+		[] as number[]
 	];
 
-	// k1 = k1.clone();
-	// k2 = k2.clone();
+	k1 = k1.clone();
+	k2 = k2.clone();
 	var d1 = 0;
 	var d2 = 0;
-	while (k1 > -d1/*k1.cmpn(-d1) > 0*/ || k2 > -d2/*k2.cmpn(-d2) > 0*/) {
+	while (k1.cmpn(-d1) > 0 || k2.cmpn(-d2) > 0) {
 
 		// First phase
-		var m14 = (andln(k1,3) + d1) & 3;
-		var m24 = (andln(k2,3) + d2) & 3;
+		var m14 = (k1.andln(3) + d1) & 3;
+		var m24 = (k2.andln(3) + d2) & 3;
 		if (m14 === 3)
 			m14 = -1;
 		if (m24 === 3)
@@ -121,7 +116,7 @@ export function getJSF(k1: bigint, k2: bigint) {
 		if ((m14 & 1) === 0) {
 			u1 = 0;
 		} else {
-			var m8 = (andln(k1,7) + d1) & 7;
+			var m8 = (k1.andln(7) + d1) & 7;
 			if ((m8 === 3 || m8 === 5) && m24 === 2)
 				u1 = -m14;
 			else
@@ -133,7 +128,7 @@ export function getJSF(k1: bigint, k2: bigint) {
 		if ((m24 & 1) === 0) {
 			u2 = 0;
 		} else {
-			var m8 = (andln(k2,7) + d2) & 7;
+			var m8 = (k2.andln(7) + d2) & 7;
 			if ((m8 === 3 || m8 === 5) && m14 === 2)
 				u2 = -m24;
 			else
@@ -146,8 +141,8 @@ export function getJSF(k1: bigint, k2: bigint) {
 			d1 = 1 - d1;
 		if (2 * d2 === u2 + 1)
 			d2 = 1 - d2;
-		k1 = iushrn(k1, 1); // k1.iushrn(1);
-		k2 = iushrn(k2, 1); // k2.iushrn(1);
+		k1.iushrn(1);
+		k2.iushrn(1);
 	}
 
 	return jsf;
@@ -167,5 +162,5 @@ export function parseBytes(bytes: IBuffer | string) {
 }
 
 export function intFromLE(bytes: IBuffer) {
-	return bytes.readBigUIntLE();
+	return new BN(bytes, 'hex', 'le');
 }
