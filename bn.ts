@@ -376,7 +376,7 @@ export interface ArrayLikeMutConstructor<T> {
 }
 
 export type Endian = 'be' | 'le';
-// export type BNArg = number | string | ArrayLike<number> | BN;
+export type BNArg = number | string | ArrayLike<number> | BN;
 
 export default class BN {
 
@@ -1049,7 +1049,7 @@ export default class BN {
 	}
 
 	constructor(
-		number: number | string | ArrayLike<number> | BN | null,
+		number: BNArg | null,
 		base?: number | 'hex' | Endian,
 		endian?: Endian
 	)
@@ -1100,11 +1100,11 @@ export default class BN {
 
 	private _init (number: number | string | ArrayLike<number>, base: number, endian: Endian) {
 		if (typeof number === 'number') {
-			return this._initNumber(number, base, endian);
+			return this._initNumber(number, endian);
 		}
 
 		if (typeof number === 'object') {
-			return this._initArray(number, base, endian);
+			return this._initArray(number, endian);
 		}
 
 		assert(base === (base | 0) && base >= 2 && base <= 36);
@@ -1130,10 +1130,10 @@ export default class BN {
 		if (endian !== 'le') 
 			return;
 
-		this._initArray(this.toArray(), base, endian);
+		this._initArray(this.toArray(), endian);
 	};
 
-	private _initNumber (number: number, base: number, endian: Endian) {
+	private _initNumber (number: number, endian: Endian) {
 		if (number < 0) {
 			this._negative = 1;
 			number = -number;
@@ -1160,10 +1160,10 @@ export default class BN {
 		if (endian !== 'le') return;
 
 		// Reverse the bytes
-		this._initArray(this.toArray(), base, endian);
+		this._initArray(this.toArray(), endian);
 	};
 
-	private _initArray (number: ArrayLike<number>, base: number, endian: Endian) {
+	private _initArray (number: ArrayLike<number>, endian: Endian) {
 		// Perhaps a Uint8Array
 		assert(typeof number.length === 'number');
 		if (number.length <= 0) {

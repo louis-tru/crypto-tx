@@ -15,7 +15,6 @@ export interface BaseCurveOptions {
 }
 
 export default abstract class BaseCurve {
-
 	type: string;
 	p: BN;
 	red: Red;
@@ -26,7 +25,7 @@ export default abstract class BaseCurve {
 	g?: any;
 
 	private _wnafT1: number[];
-	private _wnafT2: number[];
+	private _wnafT2: BasePoint[];
 	private _wnafT3: number[];
 	private _wnafT4: number[];
 
@@ -56,10 +55,11 @@ export default abstract class BaseCurve {
 	abstract pointFromJSON(obj: any, red: any): any;
 	abstract point(): void;
 	abstract validate(): void;
+	abstract jpoint(x?: BN, y?: BN, z?: BN): BasePoint;
 
 	protected _fixedNafMul(p: BasePoint, k: BN) {
 		assert(p.precomputed);
-		var doubles = p._getDoubles();
+		var doubles = p._getDoubles(0, 1);
 
 		var naf = getNAF(k, 1);
 		var I = (1 << (doubles.step + 1)) - (doubles.step % 2 === 0 ? 2 : 1);
@@ -69,13 +69,13 @@ export default abstract class BaseCurve {
 		var repr = [];
 		for (var j = 0; j < naf.length; j += doubles.step) {
 			var nafW = 0;
-			for (var k = j + doubles.step - 1; k >= j; k--)
+			for (let k = j + doubles.step - 1; k >= j; k--)
 				nafW = (nafW << 1) + naf[k];
 			repr.push(nafW);
 		}
 
-		var a = this.jpoint(null, null, null);
-		var b = this.jpoint(null, null, null);
+		var a = this.jpoint();
+		var b = this.jpoint();
 		for (var i = I; i > 0; i--) {
 			for (var j = 0; j < repr.length; j++) {
 				var nafW = repr[j];
@@ -101,10 +101,11 @@ export default abstract class BaseCurve {
 		var naf = getNAF(k, w);
 
 		// Add `this`*(N+1) for every w-NAF index
-		var acc = this.jpoint(null, null, null);
+		var acc = this.jpoint();
 		for (var i = naf.length - 1; i >= 0; i--) {
 			// Count zeroes
-			for (var k = 0; i >= 0 && naf[i] === 0; i--)
+			let k = 0;
+			for (; i >= 0 && naf[i] === 0; i--)
 				k++;
 			if (i >= 0)
 				k++;
@@ -131,10 +132,7 @@ export default abstract class BaseCurve {
 		return p.type === 'affine' ? acc.toP() : acc;
 	}
 
-	protected _wnafMulAdd(defW,
-																												points,
-																												coeffs,
-																												len) {
+	protected _wnafMulAdd(defW: number, points: BasePoint[], coeffs: BN[], len: number) {
 		var wndWidth = this._wnafT1;
 		var wnd = this._wnafT2;
 		var naf = this._wnafT3;
@@ -304,6 +302,9 @@ export abstract class BasePoint {
 	abstract add(arg: BasePoint | null): BasePoint;
 	abstract getX(): BN;
 	abstract getY(): BN;
+	abstract mixedAdd(p: BasePoint): BasePoint;
+	abstract neg(_precompute?: boolean): BasePoint;
+	abstract toP(): BasePoint;
 
 	eq(/*other*/) {
 		throw new Error('Not implemented');
@@ -356,7 +357,7 @@ export abstract class BasePoint {
 		return doubles.points.length >= Math.ceil((k.bitLength() + 1) / doubles.step);
 	};
 
-	private _getDoubles(step: number, power: number) {
+	/*private */_getDoubles(step: number, power: number) {
 		if (this.precomputed && this.precomputed.doubles)
 			return this.precomputed.doubles;
 
@@ -373,7 +374,7 @@ export abstract class BasePoint {
 		};
 	};
 
-	private _getNAFPoints(wnd: number) {
+	/*private */_getNAFPoints(wnd: number) {
 		if (this.precomputed && this.precomputed.naf)
 			return this.precomputed.naf;
 
