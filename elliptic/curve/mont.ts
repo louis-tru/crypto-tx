@@ -1,176 +1,198 @@
-'use strict';
 
-var curve = require('../curve');
-var BN = require('bn.js');
-var inherits = require('inherits');
-var Base = curve.base;
+import BN, {BNArg} from '../../bn';
+import Curve, {BasePoint,CurveOptions} from './base';
+import * as utils from '../utils';
 
-var elliptic = require('../../elliptic');
-var utils = elliptic.utils;
-
-function MontCurve(conf) {
-  Base.call(this, 'mont', conf);
-
-  this.a = new BN(conf.a, 16).toRed(this.red);
-  this.b = new BN(conf.b, 16).toRed(this.red);
-  this.i4 = new BN(4).toRed(this.red).redInvm();
-  this.two = new BN(2).toRed(this.red);
-  this.a24 = this.i4.redMul(this.a.redAdd(this.two));
+export interface MontCurveOptions extends CurveOptions {
+	a: string;
+	b: string;
 }
-inherits(MontCurve, Base);
-module.exports = MontCurve;
 
-MontCurve.prototype.validate = function validate(point) {
-  var x = point.normalize().x;
-  var x2 = x.redSqr();
-  var rhs = x2.redMul(x).redAdd(x2.redMul(this.a)).redAdd(x);
-  var y = rhs.redSqrt();
+export default class MontCurve extends Curve {
 
-  return y.redSqr().cmp(rhs) === 0;
-};
+	a: BN;
+	b: BN;
+	i4: BN;
+	a24: BN;
 
-function Point(curve, x, z) {
-  Base.BasePoint.call(this, curve, 'projective');
-  if (x === null && z === null) {
-    this.x = this.curve.one;
-    this.z = this.curve.zero;
-  } else {
-    this.x = new BN(x, 16);
-    this.z = new BN(z, 16);
-    if (!this.x.red)
-      this.x = this.x.toRed(this.curve.red);
-    if (!this.z.red)
-      this.z = this.z.toRed(this.curve.red);
-  }
+	constructor(conf: MontCurveOptions) {
+		super('mont', conf);
+		this.a = new BN(conf.a, 16).toRed(this.red);
+		this.b = new BN(conf.b, 16).toRed(this.red);
+		this.i4 = new BN(4).toRed(this.red).redInvm();
+		this.two = new BN(2).toRed(this.red);
+		this.a24 = this.i4.redMul(this.a.redAdd(this.two));
+	}
+
+	pointFromJSON(obj: any, red: any): any {
+		return Point.fromJSON(this, obj);
+	}
+	point(x: number[], y: number[]): void {
+
+	}
+	validate(point: BasePoint): boolean {
+		var x = point.normalize().x;
+		var x2 = x.redSqr();
+		var rhs = x2.redMul(x).redAdd(x2.redMul(this.a)).redAdd(x);
+		var y = rhs.redSqrt();
+		return y.redSqr().cmp(rhs) === 0;
+	}
+	jpoint(x?: BN, y?: BN, z?: BN): BasePoint {
+	}
+	pointFromX(x: number[], odd?: boolean): BasePoint {
+	}
 }
-inherits(Point, Base.BasePoint);
+
 
 MontCurve.prototype.decodePoint = function decodePoint(bytes, enc) {
-  return this.point(utils.toArray(bytes, enc), 1);
+	return this.point(utils.toArray(bytes, enc), 1);
 };
 
 MontCurve.prototype.point = function point(x, z) {
-  return new Point(this, x, z);
+	return new Point(this, x, z);
 };
 
 MontCurve.prototype.pointFromJSON = function pointFromJSON(obj) {
-  return Point.fromJSON(this, obj);
+	return Point.fromJSON(this, obj);
 };
 
-Point.prototype.precompute = function precompute() {
-  // No-op
-};
+export class MontPoint extends BasePoint {
 
-Point.prototype._encode = function _encode() {
-  return this.getX().toArray('be', this.curve.p.byteLength());
-};
+	x: BN;
+	z: BN;
 
-Point.fromJSON = function fromJSON(curve, obj) {
-  return new Point(curve, obj[0], obj[1] || curve.one);
-};
+	constructor(curve: Curve, x?: BNArg, z?: BNArg) {
+		super(curve, 'projective');
+		if (!x || !z) {
+			this.x = this.curve.one;
+			this.z = this.curve.zero;
+		} else {
+			this.x = new BN(x, 16);
+			this.z = new BN(z, 16);
+			if (!this.x.red)
+				this.x = this.x.toRed(this.curve.red);
+			if (!this.z.red)
+				this.z = this.z.toRed(this.curve.red);
+		}
+	}
 
-Point.prototype.inspect = function inspect() {
-  if (this.isInfinity())
-    return '<EC Point Infinity>';
-  return '<EC Point x: ' + this.x.fromRed().toString(16, 2) +
-      ' z: ' + this.z.fromRed().toString(16, 2) + '>';
-};
+	precompute() {
+		// No-op
+		return this;
+	};
 
-Point.prototype.isInfinity = function isInfinity() {
-  // XXX This code assumes that zero is always zero in red
-  return this.z.cmpn(0) === 0;
-};
+	_encode() {
+		return this.getX().toArray('be', this.curve.p.byteLength());
+	};
 
-Point.prototype.dbl = function dbl() {
-  // http://hyperelliptic.org/EFD/g1p/auto-montgom-xz.html#doubling-dbl-1987-m-3
-  // 2M + 2S + 4A
+	static fromJSON(curve: Curve, obj: BNArg[]) {
+		return new MontPoint(curve, obj[0], obj[1] || curve.one);
+	};
 
-  // A = X1 + Z1
-  var a = this.x.redAdd(this.z);
-  // AA = A^2
-  var aa = a.redSqr();
-  // B = X1 - Z1
-  var b = this.x.redSub(this.z);
-  // BB = B^2
-  var bb = b.redSqr();
-  // C = AA - BB
-  var c = aa.redSub(bb);
-  // X3 = AA * BB
-  var nx = aa.redMul(bb);
-  // Z3 = C * (BB + A24 * C)
-  var nz = c.redMul(bb.redAdd(this.curve.a24.redMul(c)));
-  return this.curve.point(nx, nz);
-};
+	inspect() {
+		if (this.isInfinity())
+			return '<EC Point Infinity>';
+		return '<EC Point x: ' + this.x.fromRed().toString(16, 2) +
+				' z: ' + this.z.fromRed().toString(16, 2) + '>';
+	};
 
-Point.prototype.add = function add() {
-  throw new Error('Not supported on Montgomery curve');
-};
+	isInfinity() {
+		// XXX This code assumes that zero is always zero in red
+		return this.z.cmpn(0) === 0;
+	};
 
-Point.prototype.diffAdd = function diffAdd(p, diff) {
-  // http://hyperelliptic.org/EFD/g1p/auto-montgom-xz.html#diffadd-dadd-1987-m-3
-  // 4M + 2S + 6A
+	dbl() {
+		// http://hyperelliptic.org/EFD/g1p/auto-montgom-xz.html#doubling-dbl-1987-m-3
+		// 2M + 2S + 4A
 
-  // A = X2 + Z2
-  var a = this.x.redAdd(this.z);
-  // B = X2 - Z2
-  var b = this.x.redSub(this.z);
-  // C = X3 + Z3
-  var c = p.x.redAdd(p.z);
-  // D = X3 - Z3
-  var d = p.x.redSub(p.z);
-  // DA = D * A
-  var da = d.redMul(a);
-  // CB = C * B
-  var cb = c.redMul(b);
-  // X5 = Z1 * (DA + CB)^2
-  var nx = diff.z.redMul(da.redAdd(cb).redSqr());
-  // Z5 = X1 * (DA - CB)^2
-  var nz = diff.x.redMul(da.redISub(cb).redSqr());
-  return this.curve.point(nx, nz);
-};
+		// A = X1 + Z1
+		var a = this.x.redAdd(this.z);
+		// AA = A^2
+		var aa = a.redSqr();
+		// B = X1 - Z1
+		var b = this.x.redSub(this.z);
+		// BB = B^2
+		var bb = b.redSqr();
+		// C = AA - BB
+		var c = aa.redSub(bb);
+		// X3 = AA * BB
+		var nx = aa.redMul(bb);
+		// Z3 = C * (BB + A24 * C)
+		var nz = c.redMul(bb.redAdd(this.curve.a24.redMul(c)));
+		return this.curve.point(nx, nz);
+	};
 
-Point.prototype.mul = function mul(k) {
-  var t = k.clone();
-  var a = this; // (N / 2) * Q + Q
-  var b = this.curve.point(null, null); // (N / 2) * Q
-  var c = this; // Q
+	add(): BasePoint {
+		throw new Error('Not supported on Montgomery curve');
+	};
 
-  for (var bits = []; t.cmpn(0) !== 0; t.iushrn(1))
-    bits.push(t.andln(1));
+	diffAdd(p: BasePoint, diff: MontPoint) {
+		// http://hyperelliptic.org/EFD/g1p/auto-montgom-xz.html#diffadd-dadd-1987-m-3
+		// 4M + 2S + 6A
 
-  for (var i = bits.length - 1; i >= 0; i--) {
-    if (bits[i] === 0) {
-      // N * Q + Q = ((N / 2) * Q + Q)) + (N / 2) * Q
-      a = a.diffAdd(b, c);
-      // N * Q = 2 * ((N / 2) * Q + Q))
-      b = b.dbl();
-    } else {
-      // N * Q = ((N / 2) * Q + Q) + ((N / 2) * Q)
-      b = a.diffAdd(b, c);
-      // N * Q + Q = 2 * ((N / 2) * Q + Q)
-      a = a.dbl();
-    }
-  }
-  return b;
-};
+		// A = X2 + Z2
+		var a = this.x.redAdd(this.z);
+		// B = X2 - Z2
+		var b = this.x.redSub(this.z);
+		// C = X3 + Z3
+		var c = p.x.redAdd(p.z);
+		// D = X3 - Z3
+		var d = p.x.redSub(p.z);
+		// DA = D * A
+		var da = d.redMul(a);
+		// CB = C * B
+		var cb = c.redMul(b);
+		// X5 = Z1 * (DA + CB)^2
+		var nx = diff.z.redMul(da.redAdd(cb).redSqr());
+		// Z5 = X1 * (DA - CB)^2
+		var nz = diff.x.redMul(da.redISub(cb).redSqr());
+		return this.curve.point(nx, nz);
+	};
 
-Point.prototype.mulAdd = function mulAdd() {
-  throw new Error('Not supported on Montgomery curve');
-};
+	mul(k) {
+		var t = k.clone();
+		var a = this; // (N / 2) * Q + Q
+		var b = this.curve.point(null, null); // (N / 2) * Q
+		var c = this; // Q
 
-Point.prototype.eq = function eq(other) {
-  return this.getX().cmp(other.getX()) === 0;
-};
+		for (var bits = []; t.cmpn(0) !== 0; t.iushrn(1))
+			bits.push(t.andln(1));
 
-Point.prototype.normalize = function normalize() {
-  this.x = this.x.redMul(this.z.redInvm());
-  this.z = this.curve.one;
-  return this;
-};
+		for (var i = bits.length - 1; i >= 0; i--) {
+			if (bits[i] === 0) {
+				// N * Q + Q = ((N / 2) * Q + Q)) + (N / 2) * Q
+				a = a.diffAdd(b, c);
+				// N * Q = 2 * ((N / 2) * Q + Q))
+				b = b.dbl();
+			} else {
+				// N * Q = ((N / 2) * Q + Q) + ((N / 2) * Q)
+				b = a.diffAdd(b, c);
+				// N * Q + Q = 2 * ((N / 2) * Q + Q)
+				a = a.dbl();
+			}
+		}
+		return b;
+	};
 
-Point.prototype.getX = function getX() {
-  // Normalize coordinates
-  this.normalize();
+	mulAdd() {
+		throw new Error('Not supported on Montgomery curve');
+	};
 
-  return this.x.fromRed();
-};
+	eq(other) {
+		return this.getX().cmp(other.getX()) === 0;
+	};
+
+	normalize() {
+		this.x = this.x.redMul(this.z.redInvm());
+		this.z = this.curve.one;
+		return this;
+	};
+
+	getX() {
+		// Normalize coordinates
+		this.normalize();
+
+		return this.x.fromRed();
+	};
+
+}

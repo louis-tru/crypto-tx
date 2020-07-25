@@ -1,20 +1,20 @@
 
 import * as utils from '../utils';
-import BN, {Red, MPrimeType} from '../../bn';
+import BN, {Red, MPrimeType, BNArg} from '../../bn';
 
 const getNAF = utils.getNAF;
 const getJSF = utils.getJSF;
 const assert = utils.assert;
 
-export interface BaseCurveOptions {
-	p: string;
+export interface CurveOptions {
+	p: BNArg;
 	g?: string;
-	n?: string;
+	n?: BNArg;
 	gRed?: Red;
 	prime?: BN | MPrimeType;
 }
 
-export default abstract class BaseCurve {
+export default abstract class Curve {
 	type: string;
 	p: BN;
 	red: Red;
@@ -25,11 +25,11 @@ export default abstract class BaseCurve {
 	g?: any;
 
 	private _wnafT1: number[];
-	private _wnafT2: BasePoint[];
-	private _wnafT3: number[];
+	private _wnafT2: (BasePoint[]|null)[];
+	private _wnafT3: number[][];
 	private _wnafT4: number[];
 
-	constructor(type: string, conf: BaseCurveOptions) {
+	constructor(type: string, conf: CurveOptions) {
 		this.type = type;
 		this.p = new BN(conf.p, 16);
 
@@ -53,9 +53,10 @@ export default abstract class BaseCurve {
 	}
 
 	abstract pointFromJSON(obj: any, red: any): any;
-	abstract point(): void;
-	abstract validate(): void;
+	abstract point(x: number[], y: number[]): void;
+	abstract validate(p: BasePoint): boolean;
 	abstract jpoint(x?: BN, y?: BN, z?: BN): BasePoint;
+	abstract pointFromX(x: number[], odd?: boolean): BasePoint;
 
 	protected _fixedNafMul(p: BasePoint, k: BN) {
 		assert(p.precomputed);
@@ -199,11 +200,11 @@ export default abstract class BaseCurve {
 
 				naf[a][j] = index[(ja + 1) * 3 + (jb + 1)];
 				naf[b][j] = 0;
-				wnd[a] = comb;
+				wnd[a] = comb as BasePoint[];
 			}
 		}
 
-		var acc = this.jpoint(null, null, null);
+		var acc = this.jpoint();
 		var tmp = this._wnafT4;
 		for (var i = max; i >= 0; i--) {
 			var k = 0;
@@ -228,13 +229,13 @@ export default abstract class BaseCurve {
 
 			for (var j = 0; j < len; j++) {
 				var z = tmp[j];
-				var p;
+				let p: BasePoint;
 				if (z === 0)
 					continue;
 				else if (z > 0)
-					p = wnd[j][(z - 1) >> 1];
-				else if (z < 0)
-					p = wnd[j][(-z - 1) >> 1].neg();
+					p = (wnd[j] as BasePoint[])[(z - 1) >> 1];
+				else// if (z < 0)
+					p = (wnd[j] as BasePoint[])[(-z - 1) >> 1].neg();
 
 				if (p.type === 'affine')
 					acc = acc.mixedAdd(p);
@@ -248,8 +249,8 @@ export default abstract class BaseCurve {
 		return acc.toP();
 	}
 
-	decodePoint(bytes, enc) {
-		bytes = utils.toArray(bytes, enc);
+	decodePoint(_bytes: number[] | string | object, enc?: 'hex') {
+		var bytes = utils.toArray(_bytes, enc);
 
 		var len = this.p.byteLength();
 
@@ -288,16 +289,18 @@ interface Precomputed {
 
 export abstract class BasePoint {
 
-	curve: BaseCurve;
+	curve: Curve;
 	type: string;
 	precomputed: Precomputed | null;
 
-	constructor(curve: BaseCurve, type: string) {
+	constructor(curve: Curve, type: string) {
 		this.curve = curve;
 		this.type = type;
 		this.precomputed = null;
 	}
 
+	readonly abstract x: BN;
+	readonly abstract y: BN;
 	abstract dbl(): BasePoint;
 	abstract add(arg: BasePoint | null): BasePoint;
 	abstract getX(): BN;
@@ -305,6 +308,8 @@ export abstract class BasePoint {
 	abstract mixedAdd(p: BasePoint): BasePoint;
 	abstract neg(_precompute?: boolean): BasePoint;
 	abstract toP(): BasePoint;
+	abstract toJ(): BasePoint;
+	abstract normalize(): BasePoint;
 
 	eq(/*other*/) {
 		throw new Error('Not implemented');

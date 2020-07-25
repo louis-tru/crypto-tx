@@ -216,8 +216,7 @@ ShortCurve.prototype.validate = function validate(point) {
   return y.redSqr().redISub(rhs).cmpn(0) === 0;
 };
 
-ShortCurve.prototype._endoWnafMulAdd =
-    function _endoWnafMulAdd(points, coeffs) {
+ShortCurve.prototype._endoWnafMulAdd = function _endoWnafMulAdd(points, coeffs) {
   var npoints = this._endoWnafT1;
   var ncoeffs = this._endoWnafT2;
   for (var i = 0; i < points.length; i++) {
@@ -498,6 +497,7 @@ function JPoint(curve, x, y, z) {
 
   this.zOne = this.z === this.curve.one;
 }
+
 inherits(JPoint, Base.BasePoint);
 
 ShortCurve.prototype.jpoint = function jpoint(x, y, z) {
