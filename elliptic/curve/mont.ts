@@ -1,7 +1,7 @@
 
+import * as utils from '../utils';
 import BN, {BNArg} from '../../bn';
 import Curve, {BasePoint,CurveOptions} from './base';
-import * as utils from '../utils';
 
 export interface MontCurveOptions extends CurveOptions {
 	a: string;
@@ -27,9 +27,11 @@ export default class MontCurve extends Curve {
 	pointFromJSON(obj: any, red: any): any {
 		return Point.fromJSON(this, obj);
 	}
-	point(x: number[], y: number[]): void {
 
+	point(x: number[], y: number[]): BasePoint {
+		return new Point(this, x, z);
 	}
+
 	validate(point: BasePoint): boolean {
 		var x = point.normalize().x;
 		var x2 = x.redSqr();
@@ -37,24 +39,20 @@ export default class MontCurve extends Curve {
 		var y = rhs.redSqrt();
 		return y.redSqr().cmp(rhs) === 0;
 	}
+
 	jpoint(x?: BN, y?: BN, z?: BN): BasePoint {
+
 	}
+
 	pointFromX(x: number[], odd?: boolean): BasePoint {
+
 	}
+
+	decodePoint(bytes, enc) {
+		return this.point(utils.toArray(bytes, enc), 1);
+	};
+
 }
-
-
-MontCurve.prototype.decodePoint = function decodePoint(bytes, enc) {
-	return this.point(utils.toArray(bytes, enc), 1);
-};
-
-MontCurve.prototype.point = function point(x, z) {
-	return new Point(this, x, z);
-};
-
-MontCurve.prototype.pointFromJSON = function pointFromJSON(obj) {
-	return Point.fromJSON(this, obj);
-};
 
 export class MontPoint extends BasePoint {
 
