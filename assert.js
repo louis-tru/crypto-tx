@@ -50,7 +50,9 @@ assert.isBoolean = function (value, message) {
 }
 
 assert.isBuffer = function (value, message) {
-	if (!Buffer.isBuffer(value)) throw TypeError(message)
+	if (!(value instanceof Uint8Array) && !Buffer.isBuffer(value)) {
+		throw TypeError(message)
+	}
 }
 
 assert.isFunction = function (value, message) {

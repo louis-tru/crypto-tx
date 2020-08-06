@@ -33,6 +33,7 @@
 var assert = require('../assert');
 var der = require('./der');
 var errno = require('../errno');
+var rng = require('somes/rng');
 
 function initCompressedValue (value, defaultValue) {
 	if (value === undefined)

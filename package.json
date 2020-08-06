@@ -1,6 +1,6 @@
 {
 	"name": "crypto-tx",
-	"version": "0.2.5",
+	"version": "0.2.11",
 	"main": "index.js",
 	"author": "louistru@hotmail.com",
 	"bin": {
@@ -11,7 +11,7 @@
 		"hash.js": "~1.1.7",
 		"buffer": "~5.2.1",
 		"elliptic": "~6.2.3",
-		"somes": "~0.10.70",
+		"somes": "~0.10.90",
 		"@web3-js/scrypt-shim": "~0.1.0",
 		"crypto-browserify": "~3.12.0"
 	}

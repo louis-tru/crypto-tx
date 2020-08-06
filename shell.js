@@ -180,6 +180,7 @@ async function main() {
 		console.log('publicKey:', '0x' + public_key_0.toString('hex'));
 		console.log('publicKeyLong:', '0x' + public_key_1.toString('hex'));
 	} else if (opts.S) {
+		// crypto-tx -k 0x2a50f73626d277e0b135eded15c9178ee5133a3e3c872ee6787bc5d28bbcfe0c -hash 0xa532bdfa7687d196cdd2ed8fef48b4eed1d3d765b4d6d9bf5af291c9d2321303  -S
 		sign();
 	} else {
 		printHelp(0);

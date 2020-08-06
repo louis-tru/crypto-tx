@@ -39,9 +39,15 @@ if (utils.haveNode) {
 	var crypto = require('crypto');
 } else {
 	var hash_js = require('hash.js');
-	var browserCrypto = global.crypto || global.msCrypto || {};
-	var subtle = browserCrypto.subtle || browserCrypto.webkitSubtle;
-	utils.assert(subtle, `not find web crypto.subtle`);
+	var _subtle;
+	var getSubtle = function() {
+		if (!_subtle) {
+			var browserCrypto = global.crypto || global.msCrypto || {};
+			_subtle = browserCrypto.subtle || browserCrypto.webkitSubtle;
+			utils.assert(_subtle, `not find web crypto.subtle`);
+		}
+		return _subtle;
+	};
 }
 
 // Compare two buffers in constant time to prevent timing attacks.

@@ -235,8 +235,9 @@ exports.sign = function (message, privateKey, noncefn, data) {
 		var getNonce = noncefn
 		noncefn = function (counter) {
 			var nonce = getNonce(message, privateKey, null, data, counter)
-			if (!Buffer.isBuffer(nonce) || nonce.length !== 32) throw new Error(errno.ECDSA_SIGN_FAIL)
-
+			if (/*!Buffer.isBuffer(nonce)*/!(nonce instanceof Uint8Array) || nonce.length !== 32) {
+				throw new Error(errno.ECDSA_SIGN_FAIL)
+			}
 			return new BN(nonce)
 		}
 	}
