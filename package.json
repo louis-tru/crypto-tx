@@ -12,7 +12,7 @@
 		"buffer": "~5.2.1",
 		"elliptic": "~6.2.3",
 		"somes": "~0.10.90",
-		"@web3-js/scrypt-shim": "~0.1.0",
+		"scrypt-js": "~3.0.1",
 		"crypto-browserify": "~3.12.0"
 	}
 }

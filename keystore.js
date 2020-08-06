@@ -30,7 +30,7 @@
 
 const utils = require('somes').default;
 const uuid = require('somes/hash/uuid').default;
-const scrypt = require('@web3-js/scrypt-shim'); // TODO
+const scrypt = require('scrypt-js');
 const assert = require('./assert');
 const keccak = require('./keccak');
 const {Buffer} = require('buffer');
@@ -70,7 +70,7 @@ function encryptPrivateKey(privateKey, password, options) {
 		kdfparams.n = options.n || 8192; // 2048 4096 8192 16384
 		kdfparams.r = options.r || 8;
 		kdfparams.p = options.p || 1;
-		derivedKey = scrypt(Buffer.from(password), Buffer.from(kdfparams.salt, 'hex'), kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen);
+		derivedKey = scrypt.syncScrypt(Buffer.from(password), Buffer.from(kdfparams.salt, 'hex'), kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen);
 	} else {
 		throw new Error('Unsupported kdf');
 	}
@@ -119,7 +119,7 @@ function decryptPrivateKey(v3Keystore, password) {
 		kdfparams = json.crypto.kdfparams;
 
 		// FIXME: support progress reporting callback
-		derivedKey = scrypt(Buffer.from(password), Buffer.from(kdfparams.salt, 'hex'), kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen);
+		derivedKey = scrypt.syncScrypt(Buffer.from(password), Buffer.from(kdfparams.salt, 'hex'), kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen);
 	} else if (json.crypto.kdf === 'pbkdf2') {
 		kdfparams = json.crypto.kdfparams;
 
