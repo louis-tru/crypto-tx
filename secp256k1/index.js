@@ -221,7 +221,7 @@ function seafSecp256k1(secp256k1) {
 				}
 			}
 
-			return secp256k1.sign(message, privateKey, noncefn, data)
+			return secp256k1.sign(message, privateKey, noncefn || function() { return rng.rng(32) }, data)
 		},
 
 		verify: function (message, signature, publicKey) {

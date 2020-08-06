@@ -88,9 +88,9 @@ function getCryptoSubtleAes(op) {
 		assert.isBuffer(key, 'Bad AES key');
 		assert.isBuffer(data, 'Bad AES data');
 		var algorithm = { name: 'AES-CBC' };
-		var cryptoKey = await subtle.importKey('raw', key, algorithm, false, [op]);
+		var cryptoKey = await getSubtle().importKey('raw', key, algorithm, false, [op]);
 		var encAlgorithm = { name: 'AES-CBC', iv: iv };
-		var result = await subtle[op](encAlgorithm, cryptoKey, data);
+		var result = await getSubtle()[op](encAlgorithm, cryptoKey, data);
 		return Buffer.from(new Uint8Array(result));
 	}
 }
