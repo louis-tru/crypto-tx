@@ -430,7 +430,7 @@ class Transaction {
 	}
 }
 
-function signTx(signer/*ITransactionSigner*/, txData) {
+async function signTx(signer/*ITransactionSigner*/, txData) {
 	// var txData = {
 	// 	nonce: '0x00',
 	// 	gasPrice: '0x09184e72a000', 
