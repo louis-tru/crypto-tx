@@ -17,7 +17,6 @@ function wif(k, compress = false, test = false) {
 	var hash = sha256(sha256(k));
 	var check = hash.slice(0, 4);
 	var wif = buffer.concat([k, check]);
-
 	// console.log('wif', wif.toString('base58'));
 	return wif;
 }
@@ -31,7 +30,6 @@ function address(k, compress = false, test = false) {
 	var hash = buffer.concat([[test ? 0x6F : 0x00], ripemd160(sha256(pub))]);
 	var check = sha256(sha256(hash)).slice(0, 4);
 	var address = buffer.concat([hash, check]);
-
 	// console.log('pub', pub.toString('hex'));
 	// console.log('address', address.toString('base58'));
 	return address;
