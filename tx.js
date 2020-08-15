@@ -33,6 +33,7 @@ var utils = require('./utils');
 var fees = require('./fees');
 var BN = require('bn.js');
 var assert = require('assert');
+var secp256k1 = require('./secp256k1');
 
 var _typeof = (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") ? 
 function (obj) { return typeof obj; } :
@@ -153,6 +154,12 @@ function defineProperties(self, fields, data) {
 		else {
 			throw new Error('invalid data');
 		}
+	}
+}
+
+class ITransactionSigner {
+	sign(message/*Buffer*/)/*: { signature: Buffer, recovery: number }*/ {
+		throw 'Err';
 	}
 }
 
@@ -346,15 +353,22 @@ class Transaction {
 
 	/**
 	 * sign a transaction with a given private key
-	 * @param {Buffer} privateKey
+	 * @param {Signer} signer
 	 */
-	sign (privateKey) {
+	sign (signer) {
 		const msgHash = this.hash(false);
-		const sig = utils.ecsign(msgHash, privateKey);
+
+		var sig = signer.sign(msgHash);
+		var rsv = {
+			r: sig.signature.slice(0, 32),
+			s: sig.signature.slice(32, 64),
+			v: sig.recovery + 27,
+		};
 		if (this._chainId > 0) {
-			sig.v += this._chainId * 2 + 8;
+			rsv.v += this._chainId * 2 + 8;
 		}
-		Object.assign(this, sig);
+
+		Object.assign(this, rsv);
 	}
 
 	/**
@@ -416,7 +430,7 @@ class Transaction {
 	}
 }
 
-function signTx(privateKey, txData) {
+function signTx(signer/*ITransactionSigner*/, txData) {
 	// var txData = {
 	// 	nonce: '0x00',
 	// 	gasPrice: '0x09184e72a000', 
@@ -428,8 +442,11 @@ function signTx(privateKey, txData) {
 	// 	chainId: 3
 	// }
 	var tx = new Transaction(txData);
-	tx.sign(privateKey);
+
+	tx.sign(signer);
+
 	var serializedTx = tx.serialize();
+
 	return {
 		rsv: { r: tx.r, s: tx.s, v: tx.v },
 		rsvHex: {
@@ -443,5 +460,6 @@ function signTx(privateKey, txData) {
 	};
 }
 
+exports.ITransactionSigner = ITransactionSigner;
 exports.signTx = signTx;
 exports.Transaction = Transaction;
