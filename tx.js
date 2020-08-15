@@ -158,7 +158,7 @@ function defineProperties(self, fields, data) {
 }
 
 class ITransactionSigner {
-	sign(message/*Buffer*/)/*: { signature: Buffer, recovery: number }*/ {
+	async sign(message/*Buffer*/)/*: { signature: Buffer, recovery: number }*/ {
 		throw 'Err';
 	}
 }
@@ -355,10 +355,10 @@ class Transaction {
 	 * sign a transaction with a given private key
 	 * @param {Signer} signer
 	 */
-	sign (signer) {
+	async sign (signer) {
 		const msgHash = this.hash(false);
 
-		var sig = signer.sign(msgHash);
+		var sig = await signer.sign(msgHash);
 		var rsv = {
 			r: sig.signature.slice(0, 32),
 			s: sig.signature.slice(32, 64),
@@ -443,7 +443,7 @@ function signTx(signer/*ITransactionSigner*/, txData) {
 	// }
 	var tx = new Transaction(txData);
 
-	tx.sign(signer);
+	await tx.sign(signer);
 
 	var serializedTx = tx.serialize();
 
