@@ -25,7 +25,7 @@ export default abstract class Curve {
 	g?: any;
 
 	private _wnafT1: number[];
-	private _wnafT2: (BasePoint[]|null)[];
+	private _wnafT2: (Point[]|null)[];
 	private _wnafT3: number[][];
 	private _wnafT4: number[];
 
@@ -53,12 +53,12 @@ export default abstract class Curve {
 	}
 
 	abstract pointFromJSON(obj: any, red: any): any;
-	abstract point(x: number[], y: number[]): void;
-	abstract validate(p: BasePoint): boolean;
-	abstract jpoint(x?: BN, y?: BN, z?: BN): BasePoint;
-	abstract pointFromX(x: number[], odd?: boolean): BasePoint;
+	abstract point(x: number[], y: number[]): Point;
+	abstract validate(p: Point): boolean;
+	abstract jpoint(x?: BN, y?: BN, z?: BN): Point;
+	abstract pointFromX(x: number[], odd?: boolean): Point;
 
-	protected _fixedNafMul(p: BasePoint, k: BN) {
+	protected _fixedNafMul(p: Point, k: BN) {
 		assert(p.precomputed);
 		var doubles = p._getDoubles(0, 1);
 
@@ -90,7 +90,7 @@ export default abstract class Curve {
 		return a.toP();
 	}
 
-	protected _wnafMul(p: BasePoint, k: BN) {
+	protected _wnafMul(p: Point, k: BN) {
 		var w = 4;
 
 		// Precompute window
@@ -133,7 +133,7 @@ export default abstract class Curve {
 		return p.type === 'affine' ? acc.toP() : acc;
 	}
 
-	protected _wnafMulAdd(defW: number, points: BasePoint[], coeffs: BN[], len: number) {
+	protected _wnafMulAdd(defW: number, points: Point[], coeffs: BN[], len: number) {
 		var wndWidth = this._wnafT1;
 		var wnd = this._wnafT2;
 		var naf = this._wnafT3;
@@ -200,7 +200,7 @@ export default abstract class Curve {
 
 				naf[a][j] = index[(ja + 1) * 3 + (jb + 1)];
 				naf[b][j] = 0;
-				wnd[a] = comb as BasePoint[];
+				wnd[a] = comb as Point[];
 			}
 		}
 
@@ -229,13 +229,13 @@ export default abstract class Curve {
 
 			for (var j = 0; j < len; j++) {
 				var z = tmp[j];
-				let p: BasePoint;
+				let p: Point;
 				if (z === 0)
 					continue;
 				else if (z > 0)
-					p = (wnd[j] as BasePoint[])[(z - 1) >> 1];
+					p = (wnd[j] as Point[])[(z - 1) >> 1];
 				else// if (z < 0)
-					p = (wnd[j] as BasePoint[])[(-z - 1) >> 1].neg();
+					p = (wnd[j] as Point[])[(-z - 1) >> 1].neg();
 
 				if (p.type === 'affine')
 					acc = acc.mixedAdd(p);
@@ -278,16 +278,16 @@ export default abstract class Curve {
 interface Precomputed {
 	doubles: {
 		step: number;
-		points: BasePoint[];
+		points: Point[];
 	};
 	naf: {
 		wnd: number;
-		points: BasePoint[];
+		points: Point[];
 	};
-	beta: BasePoint | null;
+	beta: Point | null;
 }
 
-export abstract class BasePoint {
+export abstract class Point {
 
 	curve: Curve;
 	type: string;
@@ -299,19 +299,19 @@ export abstract class BasePoint {
 		this.precomputed = null;
 	}
 
-	readonly abstract x: BN;
-	readonly abstract y: BN;
-	abstract dbl(): BasePoint;
-	abstract add(arg: BasePoint | null): BasePoint;
+	abstract readonly x: BN;
+	abstract readonly y: BN;
+	abstract dbl(): Point;
+	abstract add(arg: Point | null): Point;
 	abstract getX(): BN;
 	abstract getY(): BN;
-	abstract mixedAdd(p: BasePoint): BasePoint;
-	abstract neg(_precompute?: boolean): BasePoint;
-	abstract toP(): BasePoint;
-	abstract toJ(): BasePoint;
-	abstract normalize(): BasePoint;
+	abstract mixedAdd(p: Point): Point;
+	abstract neg(_precompute?: boolean): Point;
+	abstract toP(): Point;
+	abstract toJ(): Point;
+	abstract normalize(): this;
 
-	eq(/*other*/) {
+	eq(other: Point/*other*/): boolean {
 		throw new Error('Not implemented');
 	};
 
@@ -366,8 +366,8 @@ export abstract class BasePoint {
 		if (this.precomputed && this.precomputed.doubles)
 			return this.precomputed.doubles;
 
-		var doubles: BasePoint[] = [ this ];
-		var acc: BasePoint = this;
+		var doubles: Point[] = [ this ];
+		var acc: Point = this;
 		for (var i = 0; i < power; i += step) {
 			for (var j = 0; j < step; j++)
 				acc = acc.dbl();
@@ -383,7 +383,7 @@ export abstract class BasePoint {
 		if (this.precomputed && this.precomputed.naf)
 			return this.precomputed.naf;
 
-		var res: BasePoint[] = [ this ];
+		var res: Point[] = [ this ];
 		var max = (1 << wnd) - 1;
 		var dbl = max === 1 ? null : this.dbl();
 		for (var i = 1; i < max; i++)
@@ -394,12 +394,12 @@ export abstract class BasePoint {
 		};
 	};
 
-	protected _getBeta(): BasePoint | null {
+	protected _getBeta(): Point | null {
 		return null;
 	};
 
 	dblp(k: number) {
-		var r: BasePoint = this;
+		var r: Point = this;
 		for (var i = 0; i < k; i++)
 			r = r.dbl();
 		return r;

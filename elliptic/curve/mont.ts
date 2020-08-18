@@ -1,7 +1,7 @@
 
 import * as utils from '../utils';
 import BN, {BNArg} from '../../bn';
-import Curve, {BasePoint,CurveOptions} from './base';
+import Curve, {Point,CurveOptions} from './base';
 
 export interface MontCurveOptions extends CurveOptions {
 	a: string;
@@ -9,7 +9,6 @@ export interface MontCurveOptions extends CurveOptions {
 }
 
 export default class MontCurve extends Curve {
-
 	a: BN;
 	b: BN;
 	i4: BN;
@@ -28,11 +27,12 @@ export default class MontCurve extends Curve {
 		return Point.fromJSON(this, obj);
 	}
 
-	point(x: number[], y: number[]): BasePoint {
-		return new Point(this, x, z);
+	point(x: number[], y: number[]): Point {
+		new MontPoint(this, x, y);
+		throw 'Err';
 	}
 
-	validate(point: BasePoint): boolean {
+	validate(point: Point): boolean {
 		var x = point.normalize().x;
 		var x2 = x.redSqr();
 		var rhs = x2.redMul(x).redAdd(x2.redMul(this.a)).redAdd(x);
@@ -40,22 +40,21 @@ export default class MontCurve extends Curve {
 		return y.redSqr().cmp(rhs) === 0;
 	}
 
-	jpoint(x?: BN, y?: BN, z?: BN): BasePoint {
-
+	jpoint(x?: BN, y?: BN, z?: BN): Point {
+		throw 'Err';
 	}
 
-	pointFromX(x: number[], odd?: boolean): BasePoint {
-
+	pointFromX(x: number[], odd?: boolean): Point {
+		throw 'Err';
 	}
 
-	decodePoint(bytes, enc) {
-		return this.point(utils.toArray(bytes, enc), 1);
+	decodePoint(bytes: number[] | string | object, enc?: 'hex') {
+		return this.point(utils.toArray(bytes, enc), [1]) as Point;
 	};
 
 }
 
-export class MontPoint extends BasePoint {
-
+export class MontPoint extends Point {
 	x: BN;
 	z: BN;
 
@@ -120,11 +119,11 @@ export class MontPoint extends BasePoint {
 		return this.curve.point(nx, nz);
 	};
 
-	add(): BasePoint {
+	add(): Point {
 		throw new Error('Not supported on Montgomery curve');
 	};
 
-	diffAdd(p: BasePoint, diff: MontPoint) {
+	diffAdd(p: Point, diff: MontPoint) {
 		// http://hyperelliptic.org/EFD/g1p/auto-montgom-xz.html#diffadd-dadd-1987-m-3
 		// 4M + 2S + 6A
 
@@ -147,7 +146,7 @@ export class MontPoint extends BasePoint {
 		return this.curve.point(nx, nz);
 	};
 
-	mul(k) {
+	mul(k: BN) {
 		var t = k.clone();
 		var a = this; // (N / 2) * Q + Q
 		var b = this.curve.point(null, null); // (N / 2) * Q
@@ -176,7 +175,7 @@ export class MontPoint extends BasePoint {
 		throw new Error('Not supported on Montgomery curve');
 	};
 
-	eq(other) {
+	eq(other: Point) {
 		return this.getX().cmp(other.getX()) === 0;
 	};
 
@@ -192,5 +191,29 @@ export class MontPoint extends BasePoint {
 
 		return this.x.fromRed();
 	};
+
+	getY(): BN {
+		throw 'Err';
+	}
+
+	mixedAdd(p: Point): Point {
+		throw 'Err';
+	}
+
+	neg(_precompute?: boolean): Point {
+		throw 'Err';
+	}
+
+	toP(): Point {
+		throw 'Err';
+	}
+
+	toJ(): Point {
+		throw 'Err';
+	}
+
+	get y(): BN {
+		throw 'Err';
+	}
 
 }
