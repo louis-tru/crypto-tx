@@ -33,6 +33,7 @@ var crypto = require('./index');
 var assert = require('./assert');
 var arguments = require('somes/arguments');
 var toBuffer = require('./utils').toBuffer;
+var sign = require('./sign');
 var opts = arguments.options;
 var help_info = arguments.helpInfo;
 var def_opts = arguments.defOpts;
@@ -41,7 +42,9 @@ var def_opts = arguments.defOpts;
 def_opts(['E'],         0,   '-E    cmd encryptECIES [{0}]');
 def_opts(['D'],         0,   '-D    cmd decryptECIES [{0}]');
 def_opts(['G'],         0,   '-G    cmd gen private and public keys [{0}]');
-def_opts(['C'],         0,   '-C    cmd public key convert [{0}]');
+def_opts(['G'],         0,   '-G    cmd gen private and public keys [{0}]');
+def_opts(['S'],         0,   '-S    sign data or hash');
+def_opts(['S2'],        0,   '-S2   sign Arguments From Types');
 def_opts(['k'],         '',  '-k    privateKey hex');
 def_opts(['p'],         '',  '-p    publicKey hex');
 def_opts(['d'],         '',  '-d    encrypt or decrypt data');
@@ -61,6 +64,8 @@ function printHelp(code = -1) {
 		'-k privateKey -p ephemPublicKey -d ciphertext -iv value \n');
 	process.stdout.write(
 		'  crypto-tx -S -k privateKey -d data [-json] \n');
+	process.stdout.write(
+		'  crypto-tx -S -k privateKey -d data:type [-json] \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -138,6 +143,26 @@ async function sign() {
 	console.log('0x' + signature_buf.toString('hex'));
 }
 
+async function sign2() {
+	if (!opts.k || !opts.d)
+		printHelp();
+
+	var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
+
+	var data = rawData.map(e=>e.split(':')[0]);
+	var types = rawData.map(e=>e.split(':')[1]);
+
+	var rsv = sign.signArgumentsFromTypes(data, types, toBuffer(opts.k));
+
+	if (opts.json) {
+		console.log(rsv);
+	} else {
+		console.log('R:', rsv.r);
+		console.log('S:', rsv.s);
+		console.log('V:', rsv.v);
+	}
+}
+
 async function main() {
 
 	if (opts.E) {
@@ -182,6 +207,10 @@ async function main() {
 	} else if (opts.S) {
 		// crypto-tx -k 0x2a50f73626d277e0b135eded15c9178ee5133a3e3c872ee6787bc5d28bbcfe0c -hash 0xa532bdfa7687d196cdd2ed8fef48b4eed1d3d765b4d6d9bf5af291c9d2321303  -S
 		sign();
+	} else if (opts.S2) {
+		// crypto-tx -k 0x8bd71af62734df779b28b3bfc1a52582e6c0108fbec174d91ce5ba8d2788fb89 -d 0x94CcfFF7c18647c5c8C8255886E2f42B5B8d80a9:address \
+		// -d 0xD1a67514A2126C5b7A0f5DD59003aB0F3464bbf8:address -d 0x1:uint256 -d 0xd580c78d48631a60f09fd9356670764577f27786c0c3c415a033b76a92222f43:uint256 -S2
+		sign2();
 	} else {
 		printHelp(0);
 	}
