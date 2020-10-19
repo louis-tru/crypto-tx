@@ -45,6 +45,7 @@ def_opts(['G'],         0,   '-G    cmd gen private and public keys [{0}]');
 def_opts(['G'],         0,   '-G    cmd gen private and public keys [{0}]');
 def_opts(['S'],         0,   '-S    sign data or hash');
 def_opts(['S2'],        0,   '-S2   sign Arguments From Types');
+def_opts(['R'],         0,   '-R    recovery public key from signature');
 def_opts(['k'],         '',  '-k    privateKey hex');
 def_opts(['p'],         '',  '-p    publicKey hex');
 def_opts(['d'],         '',  '-d    encrypt or decrypt data');
@@ -55,7 +56,7 @@ def_opts(['json'],       0,  '-json convert json [{0}]');
 function printHelp(code = -1) {
 	process.stdout.write('Usage:\n');
 	process.stdout.write('  crypto-tx -G [-json]\n');
-	process.stdout.write('  crypto-tx -C -p publicKey \n');
+	process.stdout.write('  crypto-tx -C -p publicKey [-k privateKey] \n');
 	process.stdout.write(
 		'  crypto-tx -E '+
 		'[-k privateKey] -p publicKeyTo -d originaltext [-iv value] [-json] \n');
@@ -66,6 +67,8 @@ function printHelp(code = -1) {
 		'  crypto-tx -S -k privateKey -d data [-json] \n');
 	process.stdout.write(
 		'  crypto-tx -S2 -k privateKey -d data:type [-json] \n');
+	process.stdout.write(
+		'  crypto-tx -R -d data:type -hash rsv signature 65 bytes hex [-json] \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -160,6 +163,42 @@ async function sign2() {
 		console.log('R:', rsv.r);
 		console.log('S:', rsv.s);
 		console.log('V:', rsv.v);
+
+		var s = Buffer.concat([
+			Buffer.from(rsv.r.slice(2) + rsv.s.slice(2), 'hex'), 
+			Buffer.from([rsv.v])
+		]);
+		console.log('sign:', '0x' + s.toString('hex'));
+	}
+}
+
+function recovery() {
+	if (!opts.d || !opts.hash)
+		printHelp();
+
+	var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
+
+	var data = rawData.map(e=>e.split(':')[0]);
+	var types = rawData.map(e=>e.split(':')[1]);
+
+	var msg = sign.message(data, types);
+	var signature = toBuffer(opts.hash);
+
+	var public_key = crypto.recover(msg, signature.slice(0, 64), signature[64]);
+	var public_key_0 = crypto.publicKeyConvert(public_key);
+	var public_key_1 = crypto.publicKeyConvert(public_key, false);
+	var address = crypto.publicToAddress(public_key_0);
+
+	if (opts.json) {
+		console.log({
+			address, 
+			publicKey: '0x' + public_key_0.toString('hex'),
+			publicKeyLong: '0x' + public_key_1.toString('hex'),
+		});
+	} else {
+		console.log('address:', address);
+		console.log('publicKey:', '0x' + public_key_0.toString('hex'));
+		console.log('publicKeyLong:', '0x' + public_key_1.toString('hex'));
 	}
 }
 
@@ -195,13 +234,14 @@ async function main() {
 			console.log('address:', result.address);
 		}
 	} else if (opts.C) {
-		if (!opts.p)
+		if (!opts.p && !opts.k)
 			printHelp(0);
 
-		var public_key = toBuffer(opts.p);
+		var public_key = opts.k ? crypto.getPublic(toBuffer(opts.k)) : toBuffer(opts.p);
 		var public_key_0 = crypto.publicKeyConvert(public_key);
 		var public_key_1 = crypto.publicKeyConvert(public_key, false);
 
+		console.log('address:', crypto.publicToAddress(public_key_0));
 		console.log('publicKey:', '0x' + public_key_0.toString('hex'));
 		console.log('publicKeyLong:', '0x' + public_key_1.toString('hex'));
 	} else if (opts.S) {
@@ -211,6 +251,8 @@ async function main() {
 		// crypto-tx -k 0x8bd71af62734df779b28b3bfc1a52582e6c0108fbec174d91ce5ba8d2788fb89 -d 0x94CcfFF7c18647c5c8C8255886E2f42B5B8d80a9:address \
 		// -d 0xD1a67514A2126C5b7A0f5DD59003aB0F3464bbf8:address -d 0x1:uint256 -d 0xd580c78d48631a60f09fd9356670764577f27786c0c3c415a033b76a92222f43:uint256 -S2
 		sign2();
+	} else if (opts.R) {
+		recovery();
 	} else {
 		printHelp(0);
 	}

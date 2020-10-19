@@ -22,7 +22,7 @@ const ArgumentsBytesLen = {
 	'uint8': 1,
 };
 
-function signArgumentsFromTypes(data, types, privateKey) {
+function message(data, types) {
 	const args = [];
 
 	for (var i = 0; i < data.length; i++) {
@@ -38,8 +38,14 @@ function signArgumentsFromTypes(data, types, privateKey) {
 		args.push(arg);
 	}
 
-	var message = buffer.from(crypto_tx.keccak(buffer.concat(args)).data);
-	var signature = crypto_tx.sign(message, privateKey);
+	var msg = buffer.from(crypto_tx.keccak(buffer.concat(args)).data);
+
+	return msg;
+}
+
+function signArgumentsFromTypes(data, types, privateKey) {
+
+	var signature = crypto_tx.sign(message(data, types), privateKey);
 
 	return {
 		r: '0x' + signature.signature.slice(0, 32).toString('hex'),
@@ -62,4 +68,5 @@ function signArgumentsFromTypes(data, types, privateKey) {
 // 	toBuffer('0x8bd71af62734df779b28b3bfc1a52582e6c0108fbec174d91ce5ba8d2788fb89')
 // );
 
+exports.message = message;
 exports.signArgumentsFromTypes = signArgumentsFromTypes;
