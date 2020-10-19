@@ -65,7 +65,7 @@ function printHelp(code = -1) {
 	process.stdout.write(
 		'  crypto-tx -S -k privateKey -d data [-json] \n');
 	process.stdout.write(
-		'  crypto-tx -S -k privateKey -d data:type [-json] \n');
+		'  crypto-tx -S2 -k privateKey -d data:type [-json] \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
