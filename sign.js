@@ -43,9 +43,9 @@ function message(data, types) {
 	return msg;
 }
 
-function signArgumentsFromTypes(data, types, privateKey) {
+function signArgumentsFromTypes(data, types, privateKey, options) {
 
-	var signature = crypto_tx.sign(message(data, types), privateKey);
+	var signature = crypto_tx.sign(message(data, types), privateKey, options);
 
 	return {
 		r: '0x' + signature.signature.slice(0, 32).toString('hex'),

@@ -36,9 +36,9 @@ var secp256k1 = require('./secp256k1');
 var keccak = require('./keccak');
 var utils = require('./utils');
 
-module.exports = Object.assign({ 
-	assert, 
-	secp256k1, 
+module.exports = Object.assign({
+	assert,
+	secp256k1,
 	toBuffer: utils.toBuffer,
 	keccak: keccak.keccak,
 }, assert, account, ecies, tx);

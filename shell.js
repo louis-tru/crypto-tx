@@ -34,6 +34,7 @@ var assert = require('./assert');
 var arguments = require('somes/arguments');
 var toBuffer = require('./utils').toBuffer;
 var sign = require('./sign');
+var rng = require('somes/rng');
 var opts = arguments.options;
 var help_info = arguments.helpInfo;
 var def_opts = arguments.defOpts;
@@ -130,7 +131,7 @@ async function decrypt() {
 	console.log('0x' + r.toString('hex'));
 }
 
-async function sign() {
+async function sign1() {
 	if (!opts.k || (!opts.d && !opts.hash))
 		printHelp();
 
@@ -140,10 +141,20 @@ async function sign() {
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength(data, 32, 'Bad data length');
 
-	var signature = crypto.sign(data, privateKey);
+	var nonce = rng.rng(32);
+
+	var signature = crypto.sign(data, privateKey, { noncefn: function() { return nonce } });
 	var signature_buf = Buffer.concat([signature.signature, Buffer.from([signature.recovery])]);
 
-	console.log('0x' + signature_buf.toString('hex'));
+	if (opts.json) {
+		console.log({
+			signature: '0x' + signature_buf.toString('hex'),
+			nonce: '0x' + nonce.toString('hex'),
+		});
+	} else {
+		console.log('signature: 0x' + signature_buf.toString('hex'));
+		console.log('nonce: 0x' + nonce.toString('hex'));
+	}
 }
 
 async function sign2() {
@@ -155,14 +166,18 @@ async function sign2() {
 	var data = rawData.map(e=>e.split(':')[0]);
 	var types = rawData.map(e=>e.split(':')[1]);
 
-	var rsv = sign.signArgumentsFromTypes(data, types, toBuffer(opts.k));
+	var nonce = rng.rng(32);
+
+	var rsv = sign.signArgumentsFromTypes(data, types, toBuffer(opts.k), { noncefn: function() { return nonce } });
 
 	if (opts.json) {
+		rsv.nonce = '0x' + nonce.toString('hex');
 		console.log(rsv);
 	} else {
 		console.log('R:', rsv.r);
 		console.log('S:', rsv.s);
 		console.log('V:', rsv.v);
+		console.log('nonce: 0x', nonce.toString('hex'));
 
 		var s = Buffer.concat([
 			Buffer.from(rsv.r.slice(2) + rsv.s.slice(2), 'hex'), 
@@ -246,7 +261,7 @@ async function main() {
 		console.log('publicKeyLong:', '0x' + public_key_1.toString('hex'));
 	} else if (opts.S) {
 		// crypto-tx -k 0x2a50f73626d277e0b135eded15c9178ee5133a3e3c872ee6787bc5d28bbcfe0c -hash 0xa532bdfa7687d196cdd2ed8fef48b4eed1d3d765b4d6d9bf5af291c9d2321303  -S
-		sign();
+		sign1();
 	} else if (opts.S2) {
 		// crypto-tx -k 0x8bd71af62734df779b28b3bfc1a52582e6c0108fbec174d91ce5ba8d2788fb89 -d 0x94CcfFF7c18647c5c8C8255886E2f42B5B8d80a9:address \
 		// -d 0xD1a67514A2126C5b7A0f5DD59003aB0F3464bbf8:address -d 0x1:uint256 -d 0xd580c78d48631a60f09fd9356670764577f27786c0c3c415a033b76a92222f43:uint256 -S2
