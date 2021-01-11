@@ -150,10 +150,12 @@ async function sign1() {
 		console.log({
 			signature: '0x' + signature_buf.toString('hex'),
 			nonce: '0x' + nonce.toString('hex'),
+			message: '0x' + data.toString('hex'),
 		});
 	} else {
 		console.log('signature: 0x' + signature_buf.toString('hex'));
 		console.log('nonce: 0x' + nonce.toString('hex'));
+		console.log('message: 0x' + data.toString('hex'));
 	}
 }
 
