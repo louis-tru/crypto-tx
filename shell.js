@@ -39,20 +39,19 @@ var opts = arguments.options;
 var help_info = arguments.helpInfo;
 var def_opts = arguments.defOpts;
 
-// def_opts(['help', 'h'], 0,   '-h   print help info');
-def_opts(['E'],         0,   '-E    cmd encryptECIES [{0}]');
-def_opts(['D'],         0,   '-D    cmd decryptECIES [{0}]');
-def_opts(['G'],         0,   '-G    cmd gen private and public keys [{0}]');
-def_opts(['G'],         0,   '-G    cmd gen private and public keys [{0}]');
-def_opts(['S'],         0,   '-S    sign data or hash');
-def_opts(['S2'],        0,   '-S2   sign Arguments From Types');
-def_opts(['R'],         0,   '-R    recovery public key from signature');
-def_opts(['k'],         '',  '-k    privateKey hex');
-def_opts(['p'],         '',  '-p    publicKey hex');
-def_opts(['d'],         '',  '-d    encrypt or decrypt data');
-def_opts(['hash'],      '',  '-hash length 256 hash data');
-def_opts(['iv'],        '',  '-iv   IV 16 bytes hex');
-def_opts(['json'],       0,  '-json convert json [{0}]');
+def_opts(['G'],             0,  '-G          cmd gen private and public keys');
+def_opts(['C'],             0,  '-C          cmd convert output public key and address');
+def_opts(['E'],             0,  '-E          cmd encryptECIES');
+def_opts(['D'],             0,  '-D          cmd decryptECIES');
+def_opts(['S'],             0,  '-S          cmd sign data or hash');
+def_opts(['S2'],            0,  '-S2         cmd sign Arguments From Types');
+def_opts(['R'],             0,  '-R          cmd recovery public key from signature');
+def_opts(['k', 'private'], '',  '-private,-k privateKey hex');
+def_opts(['p', 'public' ], '',  '-public,-p  publicKey hex');
+def_opts(['d', 'data'],    '',  '-data,-d    encrypt or decrypt data');
+def_opts(['hash'],         '',  '-hash       length 256 hash data');
+def_opts(['iv'],           '',  '-iv         IV 16 bytes hex');
+def_opts(['json'],          0,  '-json       convert output result to json [{0}]');
 
 function printHelp(code = -1) {
 	process.stdout.write('Usage:\n');
