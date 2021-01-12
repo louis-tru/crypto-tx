@@ -132,7 +132,7 @@ function sign(message, privateKey, options) {
 	return secp256k1.sign(message, privateKey, options);
 }
 
-function verify(message, publicKeyTo, signature) {
+function verify(message, signature, publicKeyTo) {
 	return secp256k1.verify(message, signature, publicKeyTo);
 }
 

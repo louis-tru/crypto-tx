@@ -46,10 +46,13 @@ def_opts(['D'],             0,  '-D          cmd decryptECIES');
 def_opts(['S'],             0,  '-S          cmd sign data or hash');
 def_opts(['S2'],            0,  '-S2         cmd sign Arguments From Types');
 def_opts(['R'],             0,  '-R          cmd recovery public key from signature');
+def_opts(['V'],             0,  '-V          cmd verify public key from hash or data');
 def_opts(['k', 'private'], '',  '-private,-k privateKey hex');
 def_opts(['p', 'public' ], '',  '-public,-p  publicKey hex');
 def_opts(['d', 'data'],    '',  '-data,-d    encrypt or decrypt data');
 def_opts(['hash'],         '',  '-hash       length 256 hash data');
+def_opts(['sign', 's'],    '',  '-sign,-s    signature 65 bytes rsv or 64 bytes rs hex');
+def_opts(['nonce'],        '',  '-nonce      signature 32 bytes hex nonce data');
 def_opts(['iv'],           '',  '-iv         IV 16 bytes hex');
 def_opts(['json'],          0,  '-json       convert output result to json [{0}]');
 
@@ -64,11 +67,13 @@ function printHelp(code = -1) {
 		'  crypto-tx -D '+
 		'-k privateKey -p ephemPublicKey -d ciphertext -iv value \n');
 	process.stdout.write(
-		'  crypto-tx -S -k privateKey -d data [-json] \n');
+		'  crypto-tx -S -k privateKey -d data [-json] [-nonce hex] \n');
 	process.stdout.write(
-		'  crypto-tx -S2 -k privateKey -d data:type [-json] \n');
+		'  crypto-tx -S2 -k privateKey -d data:type [-json] [-nonce hex] \n');
 	process.stdout.write(
-		'  crypto-tx -R -d data:type -hash rsv signature 65 bytes hex [-json] \n');
+		'  crypto-tx -R -d data:type [-hash message] -sign signature 65 bytes rsv hex [-json] \n');
+	process.stdout.write(
+		'  crypto-tx -V -d data:type [-hash message] -sign signature 64 bytes rs hex -p publicKey hex [-json] \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -140,7 +145,7 @@ async function sign1() {
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength(data, 32, 'Bad data length');
 
-	var nonce = rng.rng(32);
+	var nonce = opts.nonce ? toBuffer(opts.nonce): rng.rng(32);
 
 	var signature = crypto.sign(data, privateKey, { noncefn: function() { return nonce } });
 	var signature_buf = Buffer.concat([signature.signature, Buffer.from([signature.recovery])]);
@@ -167,7 +172,8 @@ async function sign2() {
 	var data = rawData.map(e=>e.split(':')[0]);
 	var types = rawData.map(e=>e.split(':')[1]);
 
-	var nonce = rng.rng(32);
+	// var nonce = rng.rng(32);
+	var nonce = opts.nonce ? toBuffer(opts.nonce): rng.rng(32);
 
 	var rsv = sign.signArgumentsFromTypes(data, types, toBuffer(opts.k), { noncefn: function() { return nonce } });
 
@@ -189,16 +195,22 @@ async function sign2() {
 }
 
 function recovery() {
-	if (!opts.d || !opts.hash)
+	// console.log(opts.sign)
+	if ((!opts.d && !opts.hash) || !opts.sign)
 		printHelp();
 
-	var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
+	if (opts.d) {
+		var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
+		var data = rawData.map(e=>e.split(':')[0]);
+		var types = rawData.map(e=>e.split(':')[1]);
+		var msg = sign.message(data, types);
+	} else {
+		var msg = toBuffer(opts.hash);
+	}
 
-	var data = rawData.map(e=>e.split(':')[0]);
-	var types = rawData.map(e=>e.split(':')[1]);
+	var signature = toBuffer(opts.sign);
 
-	var msg = sign.message(data, types);
-	var signature = toBuffer(opts.hash);
+	// console.log(msg, msg.length, signature.length)
 
 	var public_key = crypto.recover(msg, signature.slice(0, 64), signature[64]);
 	var public_key_0 = crypto.publicKeyConvert(public_key);
@@ -216,6 +228,31 @@ function recovery() {
 		console.log('publicKey:', '0x' + public_key_0.toString('hex'));
 		console.log('publicKeyLong:', '0x' + public_key_1.toString('hex'));
 	}
+}
+
+function verify() {
+	// console.log(opts.sign)
+	if ((!opts.d && !opts.hash) || !opts.sign || !opts.p)
+		printHelp();
+
+	if (opts.d) {
+		var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
+		var data = rawData.map(e=>e.split(':')[0]);
+		var types = rawData.map(e=>e.split(':')[1]);
+		var msg = sign.message(data, types);
+	} else {
+		var msg = toBuffer(opts.hash);
+	}
+
+	var signature = toBuffer(opts.sign);
+	var publicKey = toBuffer(opts.p);
+
+	// console.log(msg.length, signature.length, publicKey.length);
+
+	// (message, signature, publicKey)
+	var ok = crypto.verify(msg, signature, publicKey);
+
+	console.log(ok);
 }
 
 async function main() {
@@ -269,6 +306,8 @@ async function main() {
 		sign2();
 	} else if (opts.R) {
 		recovery();
+	} else if (opts.V) {
+		verify();
 	} else {
 		printHelp(0);
 	}
