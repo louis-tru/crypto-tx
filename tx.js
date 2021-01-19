@@ -33,7 +33,7 @@ var utils = require('./utils');
 var fees = require('./fees');
 var BN = require('bn.js');
 var assert = require('assert');
-var secp256k1 = require('./secp256k1');
+// var secp256k1 = require('./secp256k1');
 
 var _typeof = (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") ? 
 function (obj) { return typeof obj; } :
@@ -267,7 +267,7 @@ class Transaction {
 	 * @param {Boolean} [includeSignature=true] whether or not to inculde the signature
 	 * @return {Buffer}
 	 */
-	hash (includeSignature) {
+	hash(includeSignature) {
 		if (includeSignature === undefined) includeSignature = true;
 
 		// EIP155 spec:
@@ -455,6 +455,7 @@ async function signTx(signer/*ITransactionSigner*/, txData) {
 			v: '0x' + tx.v.toString('hex'),
 		},
 		rawTx: txData,
+		txHash: tx.hash(),
 		signTx: serializedTx,
 		hex: '0x' + serializedTx.toString('hex'),
 	};
