@@ -448,18 +448,7 @@ async function signTx(signer/*ITransactionSigner*/, rawTx) {
 	var serializedTx = tx.serialize();
 
 	return {
-<<<<<<< HEAD
 		rawTx: rawTx,
-=======
-		rsv: { r: tx.r, s: tx.s, v: tx.v },
-		rsvHex: {
-			r: '0x' + tx.r.toString('hex'),
-			s: '0x' + tx.s.toString('hex'),
-			v: '0x' + tx.v.toString('hex'),
-		},
-		rawTx: txData,
-		txHash: tx.hash(),
->>>>>>> b04314fbfbbe2f535db63e94a3c6bfe0da1cf378
 		signTx: serializedTx,
 		serializedTx: serializedTx,
 		hash: tx.hash(),
