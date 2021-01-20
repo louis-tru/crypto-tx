@@ -430,7 +430,7 @@ class Transaction {
 	}
 }
 
-async function signTx(signer/*ITransactionSigner*/, txData) {
+async function signTx(signer/*ITransactionSigner*/, rawTx) {
 	// var txData = {
 	// 	nonce: '0x00',
 	// 	gasPrice: '0x09184e72a000', 
@@ -441,22 +441,18 @@ async function signTx(signer/*ITransactionSigner*/, txData) {
 	// 	// EIP 155 chainId - mainnet: 1, ropsten: 3
 	// 	chainId: 3
 	// }
-	var tx = new Transaction(txData);
+	var tx = new Transaction(rawTx);
 
 	await tx.sign(signer);
 
 	var serializedTx = tx.serialize();
 
 	return {
-		rsv: { r: tx.r, s: tx.s, v: tx.v },
-		rsvHex: {
-			r: '0x' + tx.r.toString('hex'),
-			s: '0x' + tx.s.toString('hex'),
-			v: '0x' + tx.v.toString('hex'),
-		},
-		rawTx: txData,
+		rawTx: rawTx,
 		signTx: serializedTx,
-		hex: '0x' + serializedTx.toString('hex'),
+		serializedTx: serializedTx,
+		hash: tx.hash(),
+		rsv: { r: tx.r, s: tx.s, v: tx.v },
 	};
 }
 
