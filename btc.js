@@ -37,7 +37,7 @@ function getAddress(publicKey_bin, compress = false, test = false) { // get btc 
 
 function getAddressFromPrivateKey(private_key_bin, compress = false, test = false) {
 	var public = buffer.from(account.getPublic(private_key_bin, compress));
-	return getAddress(public, compress, trse);
+	return getAddress(public, compress, test);
 }
 
 function parseWIFKey(wif_bin) { // wif key bin
