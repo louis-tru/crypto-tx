@@ -36,25 +36,25 @@ function getAddress(publicKey_bin, compress = false, test = false) { // get btc 
 }
 
 function getAddressFromPrivateKey(private_key_bin, compress = false, test = false) {
-	var public = buffer.from(account.getPublic(private_key_bin, compress));
-	return getAddress(public, compress, test);
+	var publicKey = buffer.from(account.getPublic(private_key_bin, compress));
+	return getAddress(publicKey, compress, test);
 }
 
 function parseWIFKey(wif_bin) { // wif key bin
 	var wif = wif_bin;
 	var compress = wif.length == 38 && wif[33] == 0x01;
 	var network = wif[0];
-	var private = wif.slice(1, 33);
+	var privateKey = wif.slice(1, 33);
 	var check = compress ? wif.slice(34, 38): wif.slice(33, 37);
-	var public = buffer.from(account.getPublic(private, compress));
-	var address = getAddress(public, compress, network == 0xEF);
+	var publicKey = buffer.from(account.getPublic(privateKey, compress));
+	var address = getAddress(publicKey, compress, network == 0xEF);
 	// somes.assert(wif(private, compress).toString('base58') == wif_b58, 'parseWIF(), check code error');
 	return {
 		mainnet: network == 0x80,  /*0x80 mainnet| 0xEF tstnet*/
-		private: private,
+		private: privateKey,
 		compress: compress,
 		check: check,
-		public: public,
+		public: publicKey,
 		address: address,
 	};
 }
@@ -81,7 +81,7 @@ function parseAddressFromB58String(address_b58_str) {
 exports.getAddressFromPrivateKey = getAddressFromPrivateKey;
 exports.getWIFKey = getWIFKey;
 exports.parseWIFKeyFromB58String = parseWIFKeyFromB58String;
-exports.address = address;
+exports.getAddress = getAddress;
 exports.parseWIFKey = parseWIFKey;
 exports.parseAddress = parseAddress;
 exports.parseAddressFromB58String = parseAddressFromB58String;
