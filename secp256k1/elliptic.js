@@ -288,12 +288,19 @@ exports.recover = function (message, signature, recovery, compressed) {
 	}
 }
 
+exports.getKeyRecoveryParam = function(message, signature, publicKey) {
+	var pair = loadPublicKey(publicKey)
+	if (pair === null) throw new Error(errno.EC_PUBLIC_KEY_PARSE_FAIL)
+	keyPair.getPublic('binify');
+	return ec.getKeyRecoveryParam(message, {r: signature.slice(0, 32),s: signature.slice(32, 64)}, pair.pub);
+};
+
 exports.ecdh = function (publicKey, privateKey) {
 	var shared = exports.ecdhUnsafe(publicKey, privateKey, true);
 	if (crypto) {
 		return crypto.createHash('sha256').update(shared).digest();
 	} else {
-		return new Buffer(hash_js.sha256().update(shared).digest());
+		return new Buffer.from(hash_js.sha256().update(shared).digest());
 	}
 }
 
