@@ -70,7 +70,7 @@ function sha512(msg) {
 	if (crypto) {
 		return crypto.createHash("sha512").update(msg).digest();
 	} else {
-		return new Buffer(hash_js.sha512().update(msg).digest());
+		return Buffer.from(hash_js.sha512().update(msg).digest());
 	}
 }
 
