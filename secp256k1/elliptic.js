@@ -255,14 +255,18 @@ exports.sign = function (message, privateKey, noncefn, data) {
 	}
 }
 
-exports.verify = function (message, signature, publicKey) {
+exports.verify = function (message, signature, publicKey, canonical) {
 	var sigObj = {r: signature.slice(0, 32), s: signature.slice(32, 64)}
 
 	var sigr = new BN(sigObj.r)
 	var sigs = new BN(sigObj.s)
 	if (sigr.cmp(ecparams.n) >= 0 || sigs.cmp(ecparams.n) >= 0) 
 		throw new Error(errno.ECDSA_SIGNATURE_PARSE_FAIL)
-	if (sigs.cmp(ec.nh) === 1 || sigr.isZero() || sigs.isZero()) return false
+
+	if (sigr.isZero() || sigs.isZero()) return false
+
+	if (canonical && sigs.cmp(ec.nh) === 1)
+		return false;
 
 	var pair = loadPublicKey(publicKey)
 	if (pair === null) throw new Error(errno.EC_PUBLIC_KEY_PARSE_FAIL)
