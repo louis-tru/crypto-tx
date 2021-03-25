@@ -224,7 +224,7 @@ function seafSecp256k1(secp256k1) {
 			return secp256k1.sign(message, privateKey, noncefn || function() { return rng.rng(32) }, data)
 		},
 
-		verify: function (message, signature, publicKey) {
+		verify: function (message, signature, publicKey, canonical) {
 			assert.isBuffer(message, errno.MSG32_TYPE_INVALID)
 			assert.isBufferLength(message, 32, errno.MSG32_LENGTH_INVALID)
 
@@ -234,7 +234,7 @@ function seafSecp256k1(secp256k1) {
 			assert.isBuffer(publicKey, errno.EC_PUBLIC_KEY_TYPE_INVALID)
 			assert.isBufferLength2(publicKey, 33, 65, errno.EC_PUBLIC_KEY_LENGTH_INVALID)
 
-			return secp256k1.verify(message, signature, publicKey)
+			return secp256k1.verify(message, signature, publicKey, canonical)
 		},
 
 		recover: function (message, signature, recovery, compressed) {
