@@ -255,7 +255,7 @@ exports.sign = function (message, privateKey, noncefn, data) {
 	}
 }
 
-exports.verify = function (message, signature, publicKey, canonical) {
+exports.verify = function (message, signature, publicKey, canonical = true) {
 	var sigObj = {r: signature.slice(0, 32), s: signature.slice(32, 64)}
 
 	var sigr = new BN(sigObj.r)
