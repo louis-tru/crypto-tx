@@ -132,8 +132,8 @@ function sign(message, privateKey, options) {
 	return secp256k1.sign(message, privateKey, options);
 }
 
-function verify(message, signature, publicKeyTo) {
-	return secp256k1.verify(message, signature, publicKeyTo);
+function verify(message, signature, publicKeyTo, canonical) {
+	return secp256k1.verify(message, signature, publicKeyTo, canonical);
 }
 
 function recover(message, signature, recovery, compressed = true) {
