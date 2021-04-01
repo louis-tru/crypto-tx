@@ -149,6 +149,7 @@ async function sign1() {
 
 	var signature = crypto.sign(data, privateKey, { noncefn: function() { return nonce } });
 	var signature_buf = Buffer.concat([signature.signature, Buffer.from([signature.recovery])]);
+	
 
 	if (opts.json) {
 		console.log({
