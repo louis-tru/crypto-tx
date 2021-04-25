@@ -35,12 +35,14 @@ var arguments = require('somes/arguments');
 var toBuffer = require('./utils').toBuffer;
 var sign = require('./sign');
 var rng = require('somes/rng');
+// var buffer = require('somes/buffer');
 var opts = arguments.options;
 var help_info = arguments.helpInfo;
 var def_opts = arguments.defOpts;
 
 def_opts(['G'],             0,  '-G          cmd gen private and public keys');
 def_opts(['C'],             0,  '-C          cmd convert output public key and address');
+def_opts(['F'],             0,  '-F          Format address');
 def_opts(['E'],             0,  '-E          cmd encryptECIES');
 def_opts(['D'],             0,  '-D          cmd decryptECIES');
 def_opts(['S'],             0,  '-S          cmd sign data or hash');
@@ -74,6 +76,8 @@ function printHelp(code = -1) {
 		'  crypto-tx -R -d data:type [-hash message] -sign signature 65 bytes rsv hex [-json] \n');
 	process.stdout.write(
 		'  crypto-tx -V -d data:type [-hash message] -sign signature 64 bytes rs hex -p publicKey hex [-json] \n');
+	process.stdout.write(
+		'  crypto-tx -F -d address hex address \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -255,6 +259,15 @@ function verify() {
 	console.log(ok);
 }
 
+function format() {
+	if (!opts.d) {
+		printHelp();
+	} else {
+		var address = '0x' + crypto.toChecksumAddress(Buffer.from(opts.d.slice(2), 'hex'));
+		console.log(address);
+	}
+}
+
 async function main() {
 
 	if (opts.E) {
@@ -308,6 +321,8 @@ async function main() {
 		recovery();
 	} else if (opts.V) {
 		verify();
+	} else if (opts.F) {
+		format();
 	} else {
 		printHelp(0);
 	}
