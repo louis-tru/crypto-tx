@@ -56,6 +56,7 @@ function genPrivateKey() {
 function toChecksumAddress(address) {
 	address = address.toString('hex');
 	var addressHash = keccak(address).hex.slice(2);
+	// console.log(addressHash);
 	var checksumAddress = '';
 	for (var i = 0; i < 40; i++) {
 		checksumAddress += parseInt(addressHash[i], 16) > 7 ? 
