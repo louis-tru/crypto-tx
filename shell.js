@@ -54,7 +54,7 @@ def_opts(['p', 'public' ], '',  '-public,-p  publicKey hex');
 def_opts(['d', 'data'],    '',  '-data,-d    encrypt or decrypt data');
 def_opts(['hash'],         '',  '-hash       length 256 hash data');
 def_opts(['sign', 's'],    '',  '-sign,-s    signature 65 bytes rsv or 64 bytes rs hex');
-def_opts(['nonce'],        '',  '-nonce      signature 32 bytes hex nonce data');
+def_opts(['nonce'],        '',  '-nonce      signature 32 bytes hex nonce data or none');
 def_opts(['iv'],           '',  '-iv         IV 16 bytes hex');
 def_opts(['json'],          0,  '-json       convert output result to json [{0}]');
 
@@ -139,6 +139,22 @@ async function decrypt() {
 	console.log('0x' + r.toString('hex'));
 }
 
+function getNonce(opts) {
+	var nonce = rng.rng(32);
+	var noncefn = function() { return nonce };
+	if (opts.nonce) {
+		if (opts.nonce == 'none') {
+			nonce = '';
+			noncefn = null;
+		} else {
+			nonce = toBuffer(opts.nonce);
+		}
+	}
+	return {
+		nonce: nonce ? '0x' + nonce.toString('hex'): 'none', noncefn,
+	};
+}
+
 async function sign1() {
 	if (!opts.k || (!opts.d && !opts.hash))
 		printHelp();
@@ -149,20 +165,19 @@ async function sign1() {
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength(data, 32, 'Bad data length');
 
-	var nonce = opts.nonce ? toBuffer(opts.nonce): rng.rng(32);
-
-	var signature = crypto.sign(data, privateKey, { noncefn: function() { return nonce } });
+	var {nonce, noncefn} = getNonce(opts);
+	var signature = crypto.sign(data, privateKey, { noncefn });
 	var signature_buf = Buffer.concat([signature.signature, Buffer.from([signature.recovery])]);
 
 	if (opts.json) {
 		console.log({
 			signature: '0x' + signature_buf.toString('hex'),
-			nonce: '0x' + nonce.toString('hex'),
+			nonce: nonce,
 			message: '0x' + data.toString('hex'),
 		});
 	} else {
 		console.log('signature: 0x' + signature_buf.toString('hex'));
-		console.log('nonce: 0x' + nonce.toString('hex'));
+		console.log('nonce: ' + nonce);
 		console.log('message: 0x' + data.toString('hex'));
 	}
 }
@@ -175,20 +190,17 @@ async function sign2() {
 
 	var data = rawData.map(e=>e.split(':')[0]);
 	var types = rawData.map(e=>e.split(':')[1]);
-
-	// var nonce = rng.rng(32);
-	var nonce = opts.nonce ? toBuffer(opts.nonce): rng.rng(32);
-
-	var rsv = sign.signArgumentsFromTypes(data, types, toBuffer(opts.k), { noncefn: function() { return nonce } });
+	var {nonce, noncefn} = getNonce(opts);
+	var rsv = sign.signArgumentsFromTypes(data, types, toBuffer(opts.k), { noncefn });
 
 	if (opts.json) {
-		rsv.nonce = '0x' + nonce.toString('hex');
+		rsv.nonce = nonce;
 		console.log(rsv);
 	} else {
 		console.log('R:', rsv.r);
 		console.log('S:', rsv.s);
 		console.log('V:', rsv.v);
-		console.log('nonce: 0x', nonce.toString('hex'));
+		console.log('nonce: ', nonce);
 
 		var s = Buffer.concat([
 			Buffer.from(rsv.r.slice(2) + rsv.s.slice(2), 'hex'), 

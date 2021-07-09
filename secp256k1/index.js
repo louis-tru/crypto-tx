@@ -205,7 +205,7 @@ function seafSecp256k1(secp256k1) {
 			assert.isBufferLength(privateKey, 32, errno.EC_PRIVATE_KEY_LENGTH_INVALID)
 
 			var data = null
-			var noncefn = null
+			var noncefn = function() { return rng.rng(32) };
 			if (options !== undefined) {
 				assert.isObject(options, errno.OPTIONS_TYPE_INVALID)
 
@@ -216,12 +216,16 @@ function seafSecp256k1(secp256k1) {
 				}
 
 				if (options.noncefn !== undefined) {
-					assert.isFunction(options.noncefn, errno.OPTIONS_NONCEFN_TYPE_INVALID)
-					noncefn = options.noncefn
+					if (options.noncefn) {
+						assert.isFunction(options.noncefn, errno.OPTIONS_NONCEFN_TYPE_INVALID)
+						noncefn = options.noncefn
+					} else {
+						noncefn = null;
+					}
 				}
 			}
 
-			return secp256k1.sign(message, privateKey, noncefn || function() { return rng.rng(32) }, data)
+			return secp256k1.sign(message, privateKey, noncefn, data)
 		},
 
 		verify: function (message, signature, publicKey, canonical) {
