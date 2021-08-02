@@ -293,6 +293,7 @@ async function main() {
 		} else {
 			var privateKey = crypto.genPrivateKey();
 		}
+		var nonce = rng.rng(32);
 		var publicKey_0 = crypto.getPublic(privateKey);
 		var publicKey_1 = crypto.getPublic(privateKey, true);
 		var result = {
@@ -301,6 +302,7 @@ async function main() {
 			publicKey: '0x' + publicKey_0.toString('hex'),
 			publicKey1: '0x' + publicKey_1.toString('hex'),
 			address: crypto.publicToAddress(publicKey_0),
+			nonce: '0x' + nonce.toString('hex'),
 		};
 		if (opts.json) {
 			console.log(JSON.stringify(result));
@@ -310,6 +312,7 @@ async function main() {
 			console.log('publicKey:', result.publicKey);
 			console.log('publicKey1:', result.publicKey1);
 			console.log('address:', result.address);
+			console.log('nonce:', result.nonce);
 		}
 	} else if (opts.C) {
 		if (!opts.p && !opts.k)
