@@ -24,6 +24,10 @@ const ArgumentsBytesLen = {
 };
 
 function message(data, types) {
+	return buffer.from(crypto_tx.keccak(concat(data, types)).data);
+}
+
+function concat(data, types) {
 	const args = [];
 
 	for (var i = 0; i < data.length; i++) {
@@ -38,10 +42,7 @@ function message(data, types) {
 		}
 		args.push(arg);
 	}
-
-	var msg = buffer.from(crypto_tx.keccak(buffer.concat(args)).data);
-
-	return msg;
+	return buffer.concat(args);
 }
 
 function signArgumentsFromTypes(data, types, privateKey, options) {
@@ -70,4 +71,5 @@ function signArgumentsFromTypes(data, types, privateKey, options) {
 // );
 
 exports.message = message;
+exports.concat = concat;
 exports.signArgumentsFromTypes = signArgumentsFromTypes;
