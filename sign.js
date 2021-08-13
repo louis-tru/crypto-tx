@@ -21,6 +21,7 @@ const ArgumentsBytesLen = {
 	'uint16': 2,
 	'uint8': 1,
 	'byte32': 32,
+	'bytes': -1,
 };
 
 function message(data, types) {
@@ -34,7 +35,8 @@ function concat(data, types) {
 		var _arg = toBuffer(data[i]);
 		var arg = buffer.from(_arg.buffer, _arg.byteOffset, _arg.length);
 		var len = ArgumentsBytesLen[types[i]] || arg.length;
-		if (arg.length < len) {
+		if (len == -1) { // variable
+		} else if (arg.length < len) {
 			arg = buffer.concat([buffer.alloc(len - arg.length), arg]);
 		} else if (arg.length > len) {
 			// arg = buffer.from(arg.buffer, arg.byteOffset + arg.length - len, len);
