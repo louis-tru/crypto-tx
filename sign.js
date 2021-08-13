@@ -22,6 +22,7 @@ const ArgumentsBytesLen = {
 	'uint8': 1,
 	'byte32': 32,
 	'bytes': -1,
+	'string': -1,
 };
 
 function message(data, types) {
