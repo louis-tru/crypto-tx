@@ -60,7 +60,7 @@ function toChecksumAddress(address) {
 		address = address.toString('hex');
 	}
 	if (!checkAddressHex('0x' + address)) {
-		throw new Error('ERR_INVALID_MBX_CLIENT_ID');
+		throw new Error('ERR_INVALID_ETH_ADDRESS');
 	}
 	
 	var addressHash = keccak(address).hex.slice(2);
