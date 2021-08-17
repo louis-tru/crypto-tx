@@ -55,13 +55,14 @@ function genPrivateKey() {
 
 function toChecksumAddress(address) {
 	if (typeof address == 'string') {
-		if (address.substr(0 , 2).toLowerCase() == '0x') {
-			address = address.slice(2);
-		}
-		address = address.toLowerCase();
+		address = address.slice(2).toLowerCase();
 	} else {
 		address = address.toString('hex');
 	}
+	if (!checkAddressHex('0x' + address)) {
+		throw new Error('ERR_INVALID_MBX_CLIENT_ID');
+	}
+	
 	var addressHash = keccak(address).hex.slice(2);
 	// console.log(addressHash);
 	var checksumAddress = '';
