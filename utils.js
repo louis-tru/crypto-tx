@@ -45,7 +45,7 @@ function getRandomValues(len) {
 	if (crypto) { // node
 		return crypto.randomBytes(len);
 	} else { // web
-		return new Buffer(browserCrypto.getRandomValues(new Uint8Array(len)));
+		return Buffer.from(browserCrypto.getRandomValues(new Uint8Array(len)));
 	}
 }
 
@@ -428,7 +428,7 @@ function toBuffer(v) {
 			} else {
 				v = Buffer.from(v);
 			}
-		} else if (typeof v === 'number') {
+		} else if (typeof v === 'number' || typeof v === 'bigint') {
 			v = intToBuffer(v);
 		} else if (v === null || v === undefined) {
 			v = Buffer.allocUnsafe(0);
@@ -493,7 +493,7 @@ function intToHex(i) {
  */
 function intToBuffer(i) {
 	var hex = intToHex(i);
-	return new Buffer(padToEven(hex.slice(2)), 'hex');
+	return Buffer.from(padToEven(hex.slice(2)), 'hex');
 }
 
 module.exports = {

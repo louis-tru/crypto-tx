@@ -21,16 +21,23 @@ const ArgumentsBytesLen = {
 	'uint16': 2,
 	'uint8': 1,
 	'byte32': 32,
+	'bytes': -1,
+	'string': -1,
 };
 
 function message(data, types) {
+	return buffer.from(crypto_tx.keccak(concat(data, types)).data);
+}
+
+function concat(data, types) {
 	const args = [];
 
 	for (var i = 0; i < data.length; i++) {
 		var _arg = toBuffer(data[i]);
 		var arg = buffer.from(_arg.buffer, _arg.byteOffset, _arg.length);
 		var len = ArgumentsBytesLen[types[i]] || arg.length;
-		if (arg.length < len) {
+		if (len == -1) { // variable
+		} else if (arg.length < len) {
 			arg = buffer.concat([buffer.alloc(len - arg.length), arg]);
 		} else if (arg.length > len) {
 			// arg = buffer.from(arg.buffer, arg.byteOffset + arg.length - len, len);
@@ -38,10 +45,7 @@ function message(data, types) {
 		}
 		args.push(arg);
 	}
-
-	var msg = buffer.from(crypto_tx.keccak(buffer.concat(args)).data);
-
-	return msg;
+	return buffer.concat(args);
 }
 
 function signArgumentsFromTypes(data, types, privateKey, options) {
@@ -70,4 +74,5 @@ function signArgumentsFromTypes(data, types, privateKey, options) {
 // );
 
 exports.message = message;
+exports.concat = concat;
 exports.signArgumentsFromTypes = signArgumentsFromTypes;

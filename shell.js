@@ -35,7 +35,8 @@ var arguments = require('somes/arguments');
 var toBuffer = require('./utils').toBuffer;
 var sign = require('./sign');
 var rng = require('somes/rng');
-// var buffer = require('somes/buffer');
+var somes = require('somes').default;
+var buffer = require('somes/buffer').default;
 var opts = arguments.options;
 var help_info = arguments.helpInfo;
 var def_opts = arguments.defOpts;
@@ -49,6 +50,7 @@ def_opts(['S'],             0,  '-S          cmd sign data or hash');
 def_opts(['S2'],            0,  '-S2         cmd sign Arguments From Types');
 def_opts(['R'],             0,  '-R          cmd recovery public key from signature');
 def_opts(['V'],             0,  '-V          cmd verify public key from hash or data');
+def_opts(['H'],             0,  '-H          gen data message hash keccak 256');
 def_opts(['k', 'private'], '',  '-private,-k privateKey hex');
 def_opts(['p', 'public' ], '',  '-public,-p  publicKey hex');
 def_opts(['d', 'data'],    '',  '-data,-d    encrypt or decrypt data');
@@ -81,6 +83,20 @@ function printHelp(code = -1) {
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
+}
+
+function message() {
+	var d = data();
+	// console.log(d + '')
+	return buffer.from(crypto.keccak(data()).data);
+}
+
+function data() {
+	somes.assert(opts.d, 'bad arg -d data');
+	var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
+	var data = rawData.map(e=>e.split(':')[0]);
+	var types = rawData.map(e=>e.split(':')[1]);
+	return sign.concat(data, types);
 }
 
 async function encrypt() {
@@ -216,10 +232,7 @@ function recovery() {
 		printHelp();
 
 	if (opts.d) {
-		var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
-		var data = rawData.map(e=>e.split(':')[0]);
-		var types = rawData.map(e=>e.split(':')[1]);
-		var msg = sign.message(data, types);
+		var msg = message();
 	} else {
 		var msg = toBuffer(opts.hash);
 	}
@@ -252,10 +265,7 @@ function verify() {
 		printHelp();
 
 	if (opts.d) {
-		var rawData = Array.isArray(opts.d) ? opts.d: [opts.d];
-		var data = rawData.map(e=>e.split(':')[0]);
-		var types = rawData.map(e=>e.split(':')[1]);
-		var msg = sign.message(data, types);
+		var msg = message();
 	} else {
 		var msg = toBuffer(opts.hash);
 	}
@@ -338,6 +348,14 @@ async function main() {
 		verify();
 	} else if (opts.F) {
 		format();
+	} else if (opts.H) {
+		if (!opts.d)
+			printHelp();
+		else {
+			// console.log(opts.d)
+			console.log('keccak256 hash:', '0x' + message().toString('hex'));
+		}
+		
 	} else {
 		printHelp(0);
 	}
