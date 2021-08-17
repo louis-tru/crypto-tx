@@ -54,7 +54,14 @@ function genPrivateKey() {
 }
 
 function toChecksumAddress(address) {
-	address = address.toString('hex');
+	if (typeof address == 'string') {
+		if (address.substr(0 , 2).toLowerCase() == '0x') {
+			address = address.slice(2);
+		}
+		address = address.toLowerCase();
+	} else {
+		address = address.toString('hex');
+	}
 	var addressHash = keccak(address).hex.slice(2);
 	// console.log(addressHash);
 	var checksumAddress = '';
