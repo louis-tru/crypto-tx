@@ -69,7 +69,11 @@ function toChecksumAddress(address) {
 		checksumAddress += parseInt(addressHash[i], 16) > 7 ? 
 			address[i].toUpperCase() : address[i];
 	}
-	return checksumAddress;
+	return '0x' + checksumAddress;
+}
+
+function checksumAddress(address) {
+	return '0x' + toChecksumAddress(address);
 }
 
 function publicToAddress(publicKey, fmt = 'address') {
@@ -157,6 +161,7 @@ module.exports = {
 	checkAddressHex,
 	getAddress,
 	toChecksumAddress,
+	checksumAddress,
 	publicKeyConvert,
 	publicKeyConvertDetails,
 	sign,
