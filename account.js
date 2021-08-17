@@ -69,7 +69,7 @@ function toChecksumAddress(address) {
 		checksumAddress += parseInt(addressHash[i], 16) > 7 ? 
 			address[i].toUpperCase() : address[i];
 	}
-	return '0x' + checksumAddress;
+	return checksumAddress;
 }
 
 function checksumAddress(address) {
