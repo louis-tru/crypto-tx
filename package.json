@@ -1,6 +1,6 @@
 {
 	"name": "crypto-tx",
-	"version": "0.4.6",
+	"version": "0.5.7",
 	"main": "index.js",
 	"author": "louistru@hotmail.com",
 	"bin": {
@@ -13,6 +13,6 @@
 		"elliptic": "~6.2.3",
 		"hash.js": "~1.1.7",
 		"scrypt-js": "~3.0.1",
-		"somes": "~0.10.110"
+		"somes": "~0.11.0"
 	}
 }
