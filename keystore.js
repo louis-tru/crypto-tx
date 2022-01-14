@@ -75,6 +75,8 @@ function encryptPrivateKey(privateKey, password, options) {
 		throw new Error('Unsupported kdf');
 	}
 
+	derivedKey = Buffer.from(derivedKey);
+
 	var cipher = cryp.createCipheriv(options.cipher || 'aes-128-ctr', derivedKey.slice(0, 16), iv);
 	if (!cipher) {
 		throw new Error('Unsupported cipher');
@@ -131,6 +133,8 @@ function decryptPrivateKey(v3Keystore, password) {
 	} else {
 		throw new Error('Unsupported key derivation scheme');
 	}
+
+	derivedKey = Buffer.from(derivedKey);
 
 	var ciphertext = Buffer.from(json.crypto.ciphertext, 'hex');
 
