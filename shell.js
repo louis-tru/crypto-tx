@@ -37,6 +37,7 @@ var sign = require('./sign');
 var rng = require('somes/rng');
 var somes = require('somes').default;
 var buffer = require('somes/buffer').default;
+var keystore = require('./keystore');
 var opts = arguments.options;
 var help_info = arguments.helpInfo;
 var def_opts = arguments.defOpts;
@@ -51,6 +52,7 @@ def_opts(['S2'],            0,  '-S2         cmd sign Arguments From Types');
 def_opts(['R'],             0,  '-R          cmd recovery public key from signature');
 def_opts(['V'],             0,  '-V          cmd verify public key from hash or data');
 def_opts(['H'],             0,  '-H          gen data message hash keccak 256');
+def_opts(['KS'],            0,  '-KS         export keystore');
 def_opts(['k', 'private'], '',  '-private,-k privateKey hex');
 def_opts(['p', 'public' ], '',  '-public,-p  publicKey hex');
 def_opts(['d', 'data'],    '',  '-data,-d    encrypt or decrypt data');
@@ -59,6 +61,7 @@ def_opts(['sign', 's'],    '',  '-sign,-s    signature 65 bytes rsv or 64 bytes 
 def_opts(['nonce'],        '',  '-nonce      signature 32 bytes hex nonce data or none');
 def_opts(['iv'],           '',  '-iv         IV 16 bytes hex');
 def_opts(['json'],          0,  '-json       convert output result to json [{0}]');
+def_opts(['pwd'],          '',  '-pwd        set keystore pawwdord');
 
 function printHelp(code = -1) {
 	process.stdout.write('Usage:\n');
@@ -80,6 +83,8 @@ function printHelp(code = -1) {
 		'  crypto-tx -V -d data:type [-hash message] -sign signature 64 bytes rs hex -p publicKey hex [-json] \n');
 	process.stdout.write(
 		'  crypto-tx -F -d address hex address \n');
+	process.stdout.write(
+		'  crypto-tx -KS -k privateKey -pwd passwork Export keystore \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -171,7 +176,7 @@ function getNonce(opts) {
 	};
 }
 
-async function sign1() {
+function sign1() {
 	if (!opts.k || (!opts.d && !opts.hash))
 		printHelp();
 
@@ -198,7 +203,7 @@ async function sign1() {
 	}
 }
 
-async function sign2() {
+function sign2() {
 	if (!opts.k || !opts.d)
 		printHelp();
 
@@ -224,6 +229,15 @@ async function sign2() {
 		]);
 		console.log('sign:', '0x' + s.toString('hex'));
 	}
+}
+
+function exportKeystore() {
+	if (!opts.k || !opts.pwd)
+		printHelp();
+
+	var store = keystore.encryptPrivateKey(toBuffer(opts.k), String(opts.pwd));
+
+	console.log(JSON.stringify(store, null, 2));
 }
 
 function recovery() {
@@ -348,6 +362,8 @@ async function main() {
 		verify();
 	} else if (opts.F) {
 		format();
+	} else if (opts.KS) {
+		exportKeystore();
 	} else if (opts.H) {
 		if (!opts.d)
 			printHelp();
