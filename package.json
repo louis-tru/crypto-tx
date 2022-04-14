@@ -10,7 +10,8 @@
 		"bn.js": "~4.11.0",
 		"buffer": "~5.2.1",
 		"crypto-browserify": "~3.12.0",
-		"elliptic": "~6.2.3",
+		"elliptic": "~6.5.4",
+		"@types/elliptic": "6.4.14",
 		"hash.js": "~1.1.7",
 		"scrypt-js": "~3.0.1",
 		"somes": "~0.11.0"
