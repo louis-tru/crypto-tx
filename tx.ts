@@ -28,150 +28,131 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const {default: buffer, isTypedArray} = require('somes/buffer');
-const utils = require('./utils');
-const fees = require('./fees');
-const BN = require('bn.js');
-const assert = require('assert');
+import somes from 'somes';
+import buffer, {Buffer} from 'somes/buffer';
+import utils from './utils';
+import fees from './fees';
+import * as BN  from 'bn.js';
 // var secp256k1 = require('./secp256k1');
 
-var _typeof = (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") ? 
-function (obj) { return typeof obj; } :
-function (obj) {
-	return (
-		obj && typeof Symbol === "function" && 
-		obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj
-	);
-};
+const N_DIV_2 = new BN('7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0', 16);
 
-/**
- * Defines properties on a `Object`. It make the assumption that underlying data is binary.
- * @param {Object} self the `Object` to define properties on
- * @param {Array} fields an array fields to define. Fields can contain:
- * * `name` - the name of the properties
- * * `length` - the number of bytes the field can have
- * * `allowLess` - if the field can be less than the length
- * * `allowEmpty`
- * @param {*} data data to be validated against the definitions
- */
-function defineProperties(self, fields, data) {
-	self.raw = [];
-	self._fields = [];
+interface Field {
+	name: string,
+	alias?: string;
+	length?: number,
+	allowLess?: boolean,
+	allowZero?: boolean,
+	default: Buffer,
+}
 
-	// attach the `toJSON`
-	self.toJSON = function (label) {
-		if (label) {
-			var obj = {};
-			self._fields.forEach(function (field) {
-				obj[field] = '0x' + self[field].toString('hex');
-			});
-			return obj;
-		}
-		return utils.baToJSON(this.raw);
-	};
+export interface ITransactionSigner {
+	sign(message: Buffer): Promise<{ signature: Buffer, recovery: number }>;
+}
 
-	self.serialize = function serialize() {
-		return utils.rlp_encode(self.raw);
-	};
 
-	fields.forEach(function (field, i) {
-		self._fields.push(field.name);
+export class Transaction {
 
-		function getter() {
-			return self.raw[i];
-		}
+	private _chainId: number;
+	private _homestead: boolean;
+	readonly raw: any[] = [];
+	private _fields: string[] = [];
+	private _from?: Buffer;
+	private _senderPubKey?: Buffer;
 
-		function setter(v) {
-			v = utils.toBuffer(v);
+	readonly nonce = buffer.Zero;
+	readonly gasPrice = buffer.Zero;
+	readonly gasLimit = buffer.Zero;
+	readonly to = buffer.Zero;
+	readonly value = buffer.Zero;
+	readonly data = buffer.Zero;
+	readonly v = buffer.Zero;
+	readonly r = buffer.Zero;
+	readonly s = buffer.Zero;
 
-			if (v.toString('hex') === '00' && !field.allowZero) {
-				v = buffer.allocUnsafe(0);
+	private setFields(fields: Field[], opts: any) {
+		var self = this
+		var _this = self as any;
+
+		fields.forEach(function (field: Field, i: number) {
+			self._fields.push(field.name);
+
+			var prop = {
+				enumerable: true,
+				configurable: true,
+				get() {
+					return self.raw[i];
+				},
+				set(v: any) {
+					v = utils.toBuffer(v);
+	
+					if (v.toString('hex') === '00' && !field.allowZero) {
+						v = buffer.allocUnsafe(0);
+					}
+	
+					if (field.allowLess && field.length) {
+						v = utils.stripZeros(v);
+						somes.assert(field.length >= v.length, 
+							'The field ' + field.name + ' must not have more ' + field.length + ' bytes');
+					}
+					else if (!(field.allowZero && v.length === 0) && field.length) {
+						somes.assert(field.length === v.length, 
+							'The field ' + field.name + ' must have byte length of ' + field.length);
+					}
+	
+					self.raw[i] = v;
+				},
+			};
+
+			Object.defineProperty(self, field.name, prop);
+
+			if (field.default) {
+				_this[field.name] = field.default;
 			}
 
-			if (field.allowLess && field.length) {
-				v = utils.stripZeros(v);
-				assert(field.length >= v.length, 
-					'The field ' + field.name + ' must not have more ' + field.length + ' bytes');
-			}
-			else if (!(field.allowZero && v.length === 0) && field.length) {
-				assert(field.length === v.length, 
-					'The field ' + field.name + ' must have byte length of ' + field.length);
-			}
-
-			self.raw[i] = v;
-		}
-
-		Object.defineProperty(self, field.name, {
-			enumerable: true,
-			configurable: true,
-			get: getter,
-			set: setter
+			// attach alias
+			if (field.alias)
+				Object.defineProperty(self, field.alias, Object.assign(prop, { enumerable: false }));
 		});
 
-		if (field.default) {
-			self[field.name] = field.default;
-		}
-
-		// attach alias
-		if (field.alias) {
-			Object.defineProperty(self, field.alias, {
-				enumerable: false,
-				configurable: true,
-				set: setter,
-				get: getter
-			});
-		}
-	});
-
-	// if the constuctor is passed data
-	if (data) {
-		if (typeof data === 'string') {
-			data = buffer.from(utils.stripHexPrefix(data), 'hex');
-		}
-
-		if (isTypedArray(data)) {
-			data = utils.rlp_decode(data);
-		}
-
-		if (Array.isArray(data)) {
-			if (data.length > self._fields.length) {
-				throw new Error('wrong number of fields in data');
+		//if the constuctor is passed data
+		if (opts) {
+			if (typeof opts === 'string') {
+				opts = buffer.from(utils.stripHexPrefix(opts), 'hex');
 			}
-			// make sure all the items are buffers
-			data.forEach(function (d, i) {
-				self[self._fields[i]] = utils.toBuffer(d);
-			});
-		}
-		else if ((typeof data === 'undefined' ? 'undefined' : _typeof(data)) === 'object') {
-			var keys = Object.keys(data);
-			fields.forEach(function (field) {
-				if (keys.indexOf(field.name) !== -1)
-					self[field.name] = data[field.name];
-				if (keys.indexOf(field.alias) !== -1)
-					self[field.alias] = data[field.alias];
-			});
-		}
-		else {
-			throw new Error('invalid data');
+			if (buffer.isUint8Array(opts)) {
+				opts = utils.rlp_decode(opts);
+			}
+
+			if (Array.isArray(opts)) {
+				if (opts.length > self._fields.length) {
+					throw new Error('wrong number of fields in data');
+				}
+				// make sure all the items are buffers
+				opts.forEach(function (d, i) {
+					_this[self._fields[i]] = utils.toBuffer(d);
+				});
+			}
+			else if (typeof opts == 'object' && !buffer.isUint8Array(opts)) {
+				var keys = Object.keys(opts);
+
+				for (var field of fields) {
+					if (keys.indexOf(field.name) !== -1)
+						_this[field.name] = opts[field.name];
+					if (keys.indexOf(field.alias!) !== -1) 
+						_this[field.alias!] = opts[field.alias!];
+				}
+			}
+			else {
+				throw new Error('invalid data');
+			}
 		}
 	}
-}
 
-class ITransactionSigner {
-	async sign(message/*Buffer*/)/*: { signature: Buffer, recovery: number }*/ {
-		throw 'Err';
-	}
-}
-
-/**
- * @class Transaction
- */
-class Transaction {
-	
-	constructor (data) {
+	constructor(data: Dict) {
 		data = data || {}
 		// Define Properties
-		const fields = [
+		const fields: Field[] = [
 			{
 				name: 'nonce',
 				length: 32,
@@ -222,22 +203,8 @@ class Transaction {
 			}
 		];
 
-		/**
-		 * Returns the rlp encoding of the transaction
-		 * @method serialize
-		 * @return {Buffer}
-		 * @memberof Transaction
-		 * @name serialize
-		 */
-		// attached serialize
-		defineProperties(this, fields, data);
+		this.setFields(fields, data);
 
-		/**
-		 * @property {Buffer} from (read only) sender address of 
-		 *		this transaction, mathematically derived from other parameters.
-		 * @name from
-		 * @memberof Transaction
-		 */
 		Object.defineProperty(this, 'from', {
 			enumerable: true,
 			configurable: true,
@@ -254,6 +221,23 @@ class Transaction {
 		this._homestead = true;
 	}
 
+	// attach the `toJSON`
+	toJSON(label?: boolean) {
+		if (label) {
+			var self = this;
+			var obj = {} as any;
+			self._fields.forEach(function (field: string) {
+				obj[field] = '0x' + (self as any)[field].toString('hex');
+			});
+			return obj;
+		}
+		return utils.baToJSON(this.raw);
+	}
+
+	serialize() {
+		return utils.rlp_encode(this.raw);
+	}
+
 	/**
 	 * If the tx's `to` is to the creation address
 	 * @return {Boolean}
@@ -267,7 +251,7 @@ class Transaction {
 	 * @param {Boolean} [includeSignature=true] whether or not to inculde the signature
 	 * @return {Buffer}
 	 */
-	hash(includeSignature) {
+	hash(includeSignature = true) {
 		if (includeSignature === undefined) includeSignature = true;
 
 		// EIP155 spec:
@@ -280,12 +264,13 @@ class Transaction {
 			items = this.raw;
 		} else {
 			if (this._chainId > 0) {
+				var _this = this as any;
 				const raw = this.raw.slice();
-				this.v = this._chainId;
-				this.r = 0;
-				this.s = 0;
+				_this.v = this._chainId;
+				_this.r = 0;
+				_this.s = 0;
 				items = this.raw;
-				this.raw = raw;
+				_this.raw = raw;
 			} else {
 				items = this.raw.slice(0, 6);
 			}
@@ -307,12 +292,12 @@ class Transaction {
 	 * returns the sender's address
 	 * @return {Buffer}
 	 */
-	getSenderAddress () {
+	getSenderAddress() {
 		if (this._from) {
 			return this._from;
 		}
 		const pubkey = this.getSenderPublicKey();
-		this._from = utils.publicToAddress(pubkey);
+		this._from = utils.publicToAddress(pubkey!);
 		return this._from;
 	}
 
@@ -320,18 +305,18 @@ class Transaction {
 	 * returns the public key of the sender
 	 * @return {Buffer}
 	 */
-	getSenderPublicKey () {
+	getSenderPublicKey() {
 		if (!this._senderPubKey || !this._senderPubKey.length) {
 			if (!this.verifySignature()) throw new Error('Invalid Signature');
 		}
-		return this._senderPubKey;
+		return this._senderPubKey!;
 	}
 
 	/**
 	 * Determines if the signature is valid
 	 * @return {Boolean}
 	 */
-	verifySignature () {
+	verifySignature() {
 		const msgHash = this.hash(false)
 		// All transaction signatures whose s-value is greater than secp256k1n/2 are considered invalid.
 		if (this._homestead && new BN(this.s).cmp(N_DIV_2) === 1) {
@@ -355,7 +340,7 @@ class Transaction {
 	 * sign a transaction with a given private key
 	 * @param {Signer} signer
 	 */
-	async sign (signer) {
+	async sign(signer: ITransactionSigner) {
 		const msgHash = this.hash(false);
 
 		var sig = await signer.sign(msgHash);
@@ -412,7 +397,7 @@ class Transaction {
 	 *   with a description of why the validation failed or return a Boolean
 	 * @return {Boolean|String}
 	 */
-	validate (stringError) {
+	validate (stringError = false) {
 		const errors = []
 		if (!this.verifySignature()) {
 			errors.push('Invalid Signature');
@@ -430,17 +415,19 @@ class Transaction {
 	}
 }
 
-async function signTx(signer/*ITransactionSigner*/, rawTx) {
-	// var txData = {
-	// 	nonce: '0x00',
-	// 	gasPrice: '0x09184e72a000', 
-	// 	gasLimit: '0x2710',
-	// 	to: '0x0000000000000000000000000000000000000000',
-	// 	value: '0x00', 
-	// 	data: '0x7f7465737432000000000000000000000000000000000000000000000000000000600057',
-	// 	// EIP 155 chainId - mainnet: 1, ropsten: 3
-	// 	chainId: 3
-	// }
+// var rawTx = {
+// 	nonce: '0x00',
+// 	gasPrice: '0x09184e72a000', 
+// 	gasLimit: '0x2710',
+// 	to: '0x0000000000000000000000000000000000000000',
+// 	value: '0x00', 
+// 	data: '0x7f7465737432000000000000000000000000000000000000000000000000000000600057',
+// 	// EIP 155 chainId - mainnet: 1, ropsten: 3
+// 	chainId: 3
+// }
+
+export async function signTx(signer: ITransactionSigner, rawTx: any) {
+
 	var tx = new Transaction(rawTx);
 
 	await tx.sign(signer);
@@ -455,7 +442,3 @@ async function signTx(signer/*ITransactionSigner*/, rawTx) {
 		rsv: { r: tx.r, s: tx.s, v: tx.v },
 	};
 }
-
-exports.ITransactionSigner = ITransactionSigner;
-exports.signTx = signTx;
-exports.Transaction = Transaction;

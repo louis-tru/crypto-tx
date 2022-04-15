@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-module.exports = {
+export default {
 	"COMPRESSED_TYPE_INVALID": "compressed should be a boolean",
 	"EC_PRIVATE_KEY_TYPE_INVALID": "private key should be a Buffer",
 	"EC_PRIVATE_KEY_LENGTH_INVALID": "private key length is invalid",

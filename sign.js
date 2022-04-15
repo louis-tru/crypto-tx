@@ -1,8 +1,8 @@
 
-var buffer = require('somes/buffer').default;
-var crypto_tx = require('./index');
-var toBuffer = require('./utils').toBuffer;
-var assert = require('./assert');
+const buffer = require('somes/buffer').default;
+const crypto_tx = require('./index');
+const toBuffer = require('./utils').toBuffer;
+const assert = require('./assert');
 
 const ArgumentsBytesLen = {
 	'address': 20,

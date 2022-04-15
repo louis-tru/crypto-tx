@@ -99,7 +99,7 @@ var aes256CbcEncrypt = crypto ? async function(iv, key, plaintext) {
 	var cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
 	var firstChunk = cipher.update(plaintext);
 	var secondChunk = cipher.final();
-	return Buffer.concat([firstChunk, secondChunk]);
+	return buffer.concat([firstChunk, secondChunk]);
 }: getCryptoSubtleAes('encrypt');
 
 var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {

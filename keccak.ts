@@ -28,10 +28,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var HEX_CHARS = '0123456789abcdef'.split('');
-var KECCAK_PADDING = [1, 256, 65536, 16777216];
-var SHIFT = [0, 8, 16, 24];
-var RC = [
+const KECCAK_PADDING = [1, 256, 65536, 16777216];
+const SHIFT = [0, 8, 16, 24];
+const RC = [
 	1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0,
 	2147483649, 0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0,
 	2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648,
@@ -39,7 +38,7 @@ var RC = [
 	2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648
 ];
 
-function toStringHex(uint8Array) {
+export function toStringHex(uint8Array: Uint8Array) {
 	var hex = '';
 	for (var i of uint8Array) {
 		hex += ((i >> 4 & 0xf).toString(16) + (i & 0xf).toString(16));
@@ -47,7 +46,7 @@ function toStringHex(uint8Array) {
 	return hex;
 }
 
-function toHexCode(asicc) {
+function toHexCode(asicc: number) {
 	if (asicc >= 48 && asicc <= 57) {
 		return asicc - 48; // 0 - 9
 	} else if (asicc >= 65 && asicc <= 70) {
@@ -59,7 +58,7 @@ function toHexCode(asicc) {
 	}
 }
 
-function toUint8ArrayWithHex(hex) {
+export function toUint8ArrayWithHex(hex: string) {
 	if (hex.length % 2)
 		hex += '0';
 	hex = hex.toLowerCase();
@@ -70,7 +69,17 @@ function toUint8ArrayWithHex(hex) {
 	return r;
 }
 
-function Keccak(bits) {
+interface KeccakState {
+	blocks: any[],
+	reset: boolean,
+	block: number,
+	start: number,
+	blockCount: number,
+	outputBlocks: number,
+	s: number[];
+}
+
+function Keccak(bits: number) {
 	return {
 		blocks: [],
 		reset: true,
@@ -78,13 +87,13 @@ function Keccak(bits) {
 		start: 0,
 		blockCount: 1600 - (bits << 1) >> 5,
 		outputBlocks: bits >> 5,
-		s: function (s) {
-			return [].concat(s, s, s, s, s);
+		s: function (s: number[]) {
+			return ([] as any[]).concat(s, s, s, s, s);
 		}([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-	};
+	} as KeccakState;
 }
 
-function update(state, message) {
+function update(state: KeccakState, message: ArrayLike<number> | string) {
 	var length = message.length,
 			blocks = state.blocks,
 			byteCount = state.blockCount << 2,
@@ -182,7 +191,7 @@ function update(state, message) {
 	return { hex: '0x' + toStringHex(r), data: r };
 }
 
-function f(s) {
+function f(s: number[]) {
 
 	var h, l, n, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, b0, b1, b2, b3, b4, b5, b6, b7, b8, 
 	b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20, b21, b22, b23, b24, b25, b26, 
@@ -369,25 +378,20 @@ function f(s) {
 	}
 }
 
-var keccak = function keccak(str, bits = 256) {
+export function keccak(m: string | ArrayLike<number>, bits = 256) {
 	var msg;
-	if (str.slice(0, 2) === '0x') {
+	if (typeof m == 'string' &&  m.slice(0, 2) === '0x') {
 		msg = [];
-		for (var i = 2, l = str.length; i < l; i += 2) {
-			msg.push(parseInt(str.slice(i, i + 2), 16));
+		for (var i = 2, l = m.length; i < l; i += 2) {
+			msg.push(parseInt(m.slice(i, i + 2), 16));
 		}
 	} else {
-		msg = str;
+		msg = m;
 	}
 	return update(Keccak(bits || 256), msg);
-};
+}
 
-module.exports = {
-	toStringHex: toStringHex,
-	toUint8ArrayWithHex: toUint8ArrayWithHex,
-	keccak256: (s)=>keccak(s, 256),
-	keccak512: (s)=>keccak(s, 512),
-	keccak256s: (s)=>keccak(s, 256),
-	keccak512s: (s)=>keccak(s, 512),
-	keccak: keccak,
-};
+export const keccak256 = (s: string | ArrayLike<number>)=>keccak(s, 256);
+export const keccak512 = (s: string | ArrayLike<number>)=>keccak(s, 512);
+export const keccak256s = (s: string | ArrayLike<number>)=>keccak(s, 256);
+export const keccak512s = (s: string | ArrayLike<number>)=>keccak(s, 512);

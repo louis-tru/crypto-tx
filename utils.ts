@@ -28,24 +28,24 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const buffer = require('somes/buffer').default;
-const utils = require('somes').default;
-const assert = require('assert');
-const secp256k1 = require('./secp256k1');
-const BN = require('bn.js');
-const keccak_0 = require("./keccak").keccak;
+import somes from 'somes';
+import * as assert from 'assert';
+import secp256k1 from './secp256k1';
+import buffer, {Buffer} from 'somes/buffer';
+import * as BN from 'bn.js';
+import {keccak as sha3} from './keccak';
 
-if (utils.haveNode) {
+if (somes.haveNode) {
 	var crypto = require('crypto');
 } else {
-	var browserCrypto = global.crypto || global.msCrypto || {};
+	var browserCrypto = (global.crypto || (global as any).msCrypto || {}) as typeof global.crypto;
 }
 
-function getRandomValues(len) {
+export function getRandomValues(len: number) {
 	if (crypto) { // node
 		return crypto.randomBytes(len);
 	} else { // web
-		return biffer.from(browserCrypto.getRandomValues(new Uint8Array(len)));
+		return buffer.from(browserCrypto.getRandomValues(new Uint8Array(len)));
 	}
 }
 
@@ -56,20 +56,20 @@ function getRandomValues(len) {
  * @param {Buffer,String,Integer,Array} data - will be converted to buffer
  * @returns {Buffer} - returns buffer of encoded data
  **/
-function rlp_encode(input) {
+export function rlp_encode(input: Buffer | ArrayLike<any> | string | number): Buffer {
 	if (input instanceof Array) {
 		var output = []
 		for (var i = 0; i < input.length; i++) {
 			output.push(rlp_encode(input[i]))
 		}
-		var buf = biffer.concat(output)
-		return biffer.concat([rlp_encodeLength(buf.length, 192), buf])
+		var buf = buffer.concat(output)
+		return buffer.concat([rlp_encodeLength(buf.length, 192), buf])
 	} else {
-		input = toBuffer(input)
-		if (input.length === 1 && input[0] < 128) {
-			return input
+		var bf = toBuffer(input);
+		if (bf.length === 1 && bf[0] < 128) {
+			return bf;
 		} else {
-			return biffer.concat([rlp_encodeLength(input.length, 128), input])
+			return buffer.concat([rlp_encodeLength(bf.length, 128), bf])
 		}
 	}
 }
@@ -79,32 +79,32 @@ function rlp_encode(input) {
  * @param {Buffer,String,Integer,Array} data - will be converted to buffer
  * @returns {Array} - returns decode Array of Buffers containg the original message
  **/
-function rlp_decode(input, stream) {
+export function rlp_decode(input: Buffer, stream = false): any {
 	if (!input || input.length === 0) {
-		return biffer.from([])
+		return [buffer.from([])];
 	}
 
 	input = toBuffer(input)
-	var decoded = _rlp_decode(input)
+	var decoded = rlp_decode2(input)
 
 	if (stream) {
-		return decoded
+		return decoded;
 	}
 
-	assert.equal(decoded.remainder.length, 0, 'invalid remainder')
+	assert.strictEqual(decoded.remainder.length, 0, 'invalid remainder')
 	return decoded.data
 }
 
-function _rlp_decode (input) {
+function rlp_decode2(input: Buffer): { remainder: Buffer, data: any } {
 	var length, llength, data, innerRemainder, d
-	var decoded = []
+	var decoded: any[] = [];
 	var firstByte = input[0]
 
 	if (firstByte <= 0x7f) {
 		// a single byte whose value is in the [0x00, 0x7f] range, that byte is its own RLP encoding.
 		return {
 			data: input.slice(0, 1),
-			remainder: input.slice(1)
+			remainder: input.slice(1),
 		}
 	} else if (firstByte <= 0xb7) {
 		// string is 0-55 bytes long. A single byte with value 0x80 plus the length of the string followed by the string
@@ -113,7 +113,7 @@ function _rlp_decode (input) {
 
 		// set 0x80 null to 0
 		if (firstByte === 0x80) {
-			data = biffer.from([])
+			data = buffer.from([])
 		} else {
 			data = input.slice(1, length)
 		}
@@ -133,7 +133,6 @@ function _rlp_decode (input) {
 		if (data.length < length) {
 			throw (new Error('invalid RLP'))
 		}
-
 		return {
 			data: data,
 			remainder: input.slice(length + llength)
@@ -143,11 +142,10 @@ function _rlp_decode (input) {
 		length = firstByte - 0xbf
 		innerRemainder = input.slice(1, length)
 		while (innerRemainder.length) {
-			d = _rlp_decode(innerRemainder)
-			decoded.push(d.data)
+			d = rlp_decode2(innerRemainder)
+			decoded.push(d.data);
 			innerRemainder = d.remainder
 		}
-
 		return {
 			data: decoded,
 			remainder: input.slice(length)
@@ -167,10 +165,11 @@ function _rlp_decode (input) {
 		}
 
 		while (innerRemainder.length) {
-			d = _rlp_decode(innerRemainder)
+			d = rlp_decode2(innerRemainder)
 			decoded.push(d.data)
 			innerRemainder = d.remainder
 		}
+
 		return {
 			data: decoded,
 			remainder: input.slice(totalLength)
@@ -178,7 +177,7 @@ function _rlp_decode (input) {
 	}
 }
 
-function rpl_intToHex(i) {
+function rpl_intToHex(i: number) {
 	var hex = i.toString(16)
 	if (hex.length % 2) {
 		hex = '0' + hex
@@ -186,20 +185,20 @@ function rpl_intToHex(i) {
 	return hex
 }
 
-function rlp_encodeLength (len, offset) {
+function rlp_encodeLength(len: number, offset: number) {
 	if (len < 56) {
-		return biffer.from([len + offset])
+		return buffer.from([len + offset])
 	} else {
 		var hexLength = rpl_intToHex(len)
 		var lLength = hexLength.length / 2
 		var firstByte = rpl_intToHex(offset + 55 + lLength)
-		return biffer.from(firstByte + hexLength, 'hex')
+		return buffer.from(firstByte + hexLength, 'hex')
 	}
 }
 
-function rlp_getLength(input) {
+export function rlp_getLength(input: Buffer | number[] | string) {
 	if (!input || input.length === 0) {
-		return biffer.from([])
+		return buffer.from([]);
 	}
 	input = toBuffer(input)
 	var firstByte = input[0]
@@ -220,7 +219,7 @@ function rlp_getLength(input) {
 	}
 }
 
-function safeParseInt(v, base) {
+function safeParseInt(v: string, base: number) {
 	if (v.slice(0, 2) === '00') {
 		throw (new Error('invalid RLP: extra zeros'))
 	}
@@ -233,11 +232,10 @@ function safeParseInt(v, base) {
  * @param {Number} [bits=256] the Keccak width
  * @return {Buffer}
  */
-function keccak(a, bits) {
+export function keccak(a: string | number | ArrayLike<number>, bits = 256) {
 	a = toBuffer(a);
 	if (!bits) bits = 256;
-
-	return biffer.from(keccak_0(a, bits).data);
+	return buffer.from(sha3(a, bits).data);
 }
 
 /**
@@ -245,8 +243,8 @@ function keccak(a, bits) {
  * @param {Buffer|Array|String|Number} a the input data
  * @return {Buffer}
  */
-function rlphash(a) {
-	return biffer.from(keccak_0(rlp_encode(a)).data);
+export function rlphash(a: ArrayLike<number> | string | number) {
+	return buffer.from(sha3(rlp_encode(a)).data);
 }
 
 /**
@@ -255,10 +253,9 @@ function rlphash(a) {
  * @param {Buffer} privateKey
  * @return {Object}
  */
-function ecsign(msgHash, privateKey) {
+export function ecsign(msgHash: Buffer, privateKey: Buffer) {
 	var sig = secp256k1.sign(msgHash, privateKey);
-
-	var ret = {};
+	var ret = {} as { r: Buffer, s: Buffer, v: number };
 	ret.r = sig.signature.slice(0, 32);
 	ret.s = sig.signature.slice(32, 64);
 	ret.v = sig.recovery + 27;
@@ -273,8 +270,8 @@ function ecsign(msgHash, privateKey) {
  * @param {Buffer} s
  * @return {Buffer} publicKey
  */
-function ecrecover(msgHash, v, r, s) {
-	var signature = biffer.concat([setLength(r, 32), setLength(s, 32)], 64);
+export function ecrecover(msgHash: Buffer, v: number, r: Buffer, s: Buffer) {
+	var signature = buffer.concat([setLength(r, 32), setLength(s, 32)], 64);
 	var recovery = v - 27;
 	if (recovery !== 0 && recovery !== 1) {
 		throw new Error('Invalid signature v value');
@@ -290,14 +287,14 @@ function ecrecover(msgHash, v, r, s) {
  * @param {Boolean} [sanitize=false] Accept public keys in other formats
  * @return {Buffer}
  */
-function publicToAddress(pubKey, sanitize) {
+export function publicToAddress(pubKey: Buffer, sanitize = false) {
 	pubKey = toBuffer(pubKey);
 	if (sanitize && pubKey.length !== 64) {
 		pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1);
 	}
 	assert(pubKey.length === 64);
 	// Only take the lower 160bits of the hash
-	return keccak(pubKey).slice(-20);
+	return buffer.from(sha3(pubKey).data.slice(-20));
 }
 
 /**
@@ -306,8 +303,8 @@ function publicToAddress(pubKey, sanitize) {
  * @param {Number} bytes  the number of bytes the buffer should be
  * @return {Buffer}
  */
-function zeros(bytes) {
-	return biffer.allocUnsafe(bytes).fill(0);
+export function zeros(bytes: number) {
+	return buffer.allocUnsafe(bytes).fill(0);
 }
 
 /**
@@ -319,9 +316,9 @@ function zeros(bytes) {
  * @param {Boolean} [right=false] whether to start padding form the left or right
  * @return {Buffer|Array}
  */
-function setLength(msg, length, right) {
+export function setLength(message: ArrayLike<number>, length: number, right = false) {
 	var buf = zeros(length);
-	msg = toBuffer(msg);
+	var msg = toBuffer(message);
 	if (right) {
 		if (msg.length < length) {
 			msg.copy(buf);
@@ -343,7 +340,7 @@ function setLength(msg, length, right) {
  * @return {Number}
  * @throws If the input number exceeds 53 bits.
  */
-function bufferToInt(buf) {
+export function bufferToInt(buf: Uint8Array) {
 	return new BN(toBuffer(buf)).toNumber();
 }
 
@@ -353,12 +350,11 @@ function bufferToInt(buf) {
  * @return {Boolean} a boolean if it is or is not hex prefixed
  * @throws if the str input is not a string
  */
-function isHexPrefixed(str) {
+ export function isHexPrefixed(str: string) {
 	if (typeof str !== 'string') {
 		throw new Error("[is-hex-prefixed] value must be type 'string', is currently type " + 
 			(typeof str) + ", while checking isHexPrefixed.");
 	}
-
 	return str.slice(0, 2) === '0x';
 }
 
@@ -367,11 +363,10 @@ function isHexPrefixed(str) {
  * @param {String} str the string value
  * @return {String|Optional} a string by pass if necessary
  */
-function stripHexPrefix(str) {
+ export function stripHexPrefix(str: any) {
 	if (typeof str !== 'string') {
 		return str;
 	}
-
 	return isHexPrefixed(str) ? str.slice(2) : str;
 }
 
@@ -380,7 +375,7 @@ function stripHexPrefix(str) {
  * @param {String} value
  * @return {String} output
  */
-function padToEven(value) {
+export function padToEven(value: string) {
 	var a = value; // eslint-disable-line
 
 	if (typeof a !== 'string') {
@@ -403,7 +398,7 @@ function padToEven(value) {
  * @param {Number} length
  * @returns {Boolean} output the string is a hex string
  */
-function isHexString(value, length) {
+export function isHexString(value: string, length?: number) {
 	if (typeof(value) !== 'string' || !value.match(/^0x[0-9A-Fa-f]*$/)) {
 		return false;
 	}
@@ -418,30 +413,31 @@ function isHexString(value, length) {
  * `Number`, null/undefined, `BN` and other objects with a `toArray()` method.
  * @param {*} v the value
  */
-function toBuffer(v) {
-	if (!buffer.isBuffer(v)) {
-		if (Array.isArray(v)) {
-			v = buffer.from(v);
-		} else if (typeof v === 'string') {
-			if (isHexString(v)) {
-				v = buffer.from(padToEven(stripHexPrefix(v)), 'hex');
-			} else {
-				v = buffer.from(v);
-			}
-		} else if (typeof v === 'number' || typeof v === 'bigint') {
-			v = intToBuffer(v);
-		} else if (v === null || v === undefined) {
-			v = buffer.allocUnsafe(0);
-		} else if (BN.isBN(v)) {
-			v = buffer.from(v.toArrayLike(Array));
-		} else if (v.toArray) {
-			// converts a BN to a Buffer
-			v = buffer.from(v.toArray());
+export function toBuffer(v?: string | Uint8Array | ArrayLike<number> | BN | { toArray: ()=>number[] } | number | bigint | null): Buffer {
+	var r: Buffer;
+	if (v instanceof Uint8Array) {
+		r = buffer.from(v.buffer);
+	} else if (Array.isArray(v)) {
+		r = buffer.from(v);
+	} else if (typeof v === 'string') {
+		if (isHexString(v)) {
+			r = buffer.from(padToEven(stripHexPrefix(v)), 'hex');
 		} else {
-			throw new Error('invalid type');
+			r = buffer.from(v);
 		}
+	} else if (typeof v === 'number' || typeof v === 'bigint') {
+		r = intToBuffer(v);
+	} else if (v === null || v === undefined) {
+		r = buffer.allocUnsafe(0);
+	} else if (BN.isBN(v)) {
+		r = buffer.from(v.toArrayLike(Array as any));
+	} else if ((v as any).toArray) {
+		// converts a BN to a Buffer
+		r = buffer.from((v as any).toArray());
+	} else {
+		throw new Error('invalid type');
 	}
-	return v;
+	return r;
 }
 
 /**
@@ -449,16 +445,17 @@ function toBuffer(v) {
  * @param {Buffer|Array} ba
  * @return {Array|String|null}
  */
-function baToJSON(ba) {
-	if (biffer.isBuffer(ba)) {
-		return '0x' + ba.toString('hex');
+export function baToJSON(ba: Uint8Array | any[]): string | string[] | null {
+	if (buffer.isTypedArray(ba)) {
+		return '0x' + buffer.from(ba).toString('hex');
 	} else if (ba instanceof Array) {
-		var array = [];
+		var array: string[] = [];
 		for (var i = 0; i < ba.length; i++) {
-			array.push(baToJSON(ba[i]));
+			array.push(baToJSON(ba[i]) as string);
 		}
 		return array;
 	}
+	return null;
 }
 
 /**
@@ -466,7 +463,7 @@ function baToJSON(ba) {
  * @param {Buffer|Array|String} a
  * @return {Buffer|Array|String}
  */
-function stripZeros(a) {
+export function stripZeros(a: string | Buffer | Array<number>) {
 	a = stripHexPrefix(a);
 	var first = a[0];
 	while (a.length > 0 && first.toString() === '0') {
@@ -481,7 +478,7 @@ function stripZeros(a) {
  * @param {Number} i
  * @return {String}
  */
-function intToHex(i) {
+export function intToHex(i: number) {
 	var hex = i.toString(16); // eslint-disable-line
 	return '0x' + hex;
 }
@@ -491,12 +488,12 @@ function intToHex(i) {
  * @param {Number} i
  * @return {Buffer}
  */
-function intToBuffer(i) {
-	var hex = intToHex(i);
-	return biffer.from(padToEven(hex.slice(2)), 'hex');
+export function intToBuffer(i: number | bigint) {
+	var hex = i.toString(16);
+	return buffer.from(padToEven(hex), 'hex');
 }
 
-module.exports = {
+export default {
 	getRandomValues,// = getRandomValues;
 	rlp_encode,// = rlp_encode;
 	rlp_decode,// = rlp_decode;

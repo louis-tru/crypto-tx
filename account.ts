@@ -28,10 +28,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const buffer = require('somes/buffer').default;
-const { keccak } = require('./keccak');
-const secp256k1 = require('./secp256k1');
-const utils_2 = require('./utils');
+import buffer, {Buffer} from 'somes/buffer';
+import { keccak } from './keccak';
+import secp256k1 from './secp256k1';
+import * as utils_2 from './utils';
+import {rng} from 'somes/rng';
 
 const EC_GROUP_ORDER = buffer.from(
 	'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141', 'hex');
@@ -39,7 +40,7 @@ const ZERO32 = buffer.alloc(32, 0);
 
 const getRandomValues = utils_2.getRandomValues;
 
-function isValidPrivateKey(privateKey) {
+function isValidPrivateKey(privateKey: Buffer) {
 	if (privateKey.length === 32) {
 		return privateKey.compare(ZERO32) > 0 && // > 0
 		privateKey.compare(EC_GROUP_ORDER) < 0; // < G
@@ -53,7 +54,7 @@ function genPrivateKey() {
 	return privateKey;
 }
 
-function toChecksumAddress(address) {
+function toChecksumAddress(address: string | Buffer) {
 	if (typeof address == 'string') {
 		address = address.slice(2).toLowerCase();
 	} else {
@@ -73,7 +74,7 @@ function toChecksumAddress(address) {
 	return checksumAddress;
 }
 
-function checksumAddress(address) {
+function checksumAddress(address: string | Buffer) {
 	return '0x' + toChecksumAddress(address);
 }
 
@@ -142,6 +143,7 @@ function checkAddressHex(addressHex) {
 }
 
 function sign(message, privateKey, options) {
+	options = Object.assign({ noncefn: ()=>rng.rnk(32) }, options);
 	return secp256k1.sign(message, privateKey, options);
 }
 
