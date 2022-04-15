@@ -28,12 +28,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var utils = require('somes').default;
-var { Buffer } = require('buffer');
-var secp256k1 = require('./secp256k1');
-var assert = require('./assert');
-var utils_2 = require('./utils');
-var account = require('./account');
+const utils = require('somes').default;
+const buffer = require('somes/buffer').default;
+const secp256k1 = require('./secp256k1');
+const assert = require('./assert');
+const utils_2 = require('./utils');
+const account = require('./account');
 
 if (utils.haveNode) {
 	var crypto = require('crypto');
@@ -70,7 +70,7 @@ function sha512(msg) {
 	if (crypto) {
 		return crypto.createHash("sha512").update(msg).digest();
 	} else {
-		return Buffer.from(hash_js.sha512().update(msg).digest());
+		return buffer.from(hash_js.sha512().update(msg).digest());
 	}
 }
 
@@ -91,7 +91,7 @@ function getCryptoSubtleAes(op) {
 		var cryptoKey = await getSubtle().importKey('raw', key, algorithm, false, [op]);
 		var encAlgorithm = { name: 'AES-CBC', iv: iv };
 		var result = await getSubtle()[op](encAlgorithm, cryptoKey, data);
-		return Buffer.from(new Uint8Array(result));
+		return buffer.from(new Uint8Array(result));
 	}
 }
 
@@ -106,7 +106,7 @@ var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {
 	var cipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
 	var firstChunk = cipher.update(ciphertext);
 	var secondChunk = cipher.final();
-	return Buffer.concat([firstChunk, secondChunk]);
+	return buffer.concat([firstChunk, secondChunk]);
 }: getCryptoSubtleAes('decrypt');
 
 /**
@@ -135,8 +135,8 @@ async function encryptECIES(publicKeyTo, message, options) {
 	var encryptionKey = hash.slice(0, 32);
 	var macKey = hash.slice(32);
 	var ciphertext = await aes256CbcEncrypt(iv, encryptionKey, message);
-	var dataToMac = Buffer.concat([iv, ephemPublicKey, ciphertext]);
-	var mac = Buffer.from(hmacSha256(macKey, dataToMac));
+	var dataToMac = buffer.concat([iv, ephemPublicKey, ciphertext]);
+	var mac = buffer.from(hmacSha256(macKey, dataToMac));
 	return {
 		iv: iv,
 		ephemPublicKey: ephemPublicKey,
@@ -167,7 +167,7 @@ async function decryptECIES(privateKey, options) {
 	assert.isBufferLength(iv, 16, 'Bad iv length Must 128 bit');
 
 	if (options.mac) {
-		var dataToMac = Buffer.concat([
+		var dataToMac = buffer.concat([
 			iv,
 			options.ephemPublicKey,
 			options.ciphertext

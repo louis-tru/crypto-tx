@@ -30,7 +30,7 @@
 
 'use strict';
 
-var Buffer = require('buffer').Buffer;
+const buffer = require('somes/buffer').default;
 
 var toString = Object.prototype.toString;
 
@@ -50,7 +50,7 @@ assert.isBoolean = function (value, message) {
 }
 
 assert.isBuffer = function (value, message) {
-	if (!(value instanceof Uint8Array) && !Buffer.isBuffer(value)) {
+	if (!(value instanceof Uint8Array) /*&& !Buffer.isBuffer(value)*/) {
 		throw TypeError(message)
 	}
 }

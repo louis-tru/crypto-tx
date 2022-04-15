@@ -7,11 +7,11 @@
 		"crypto-tx": "shell.js"
 	},
 	"dependencies": {
-		"bn.js": "~4.11.0",
-		"buffer": "~5.2.1",
+		"bn.js": "~5.2.0",
+		"@types/bn.js": "~5.1.0",
 		"crypto-browserify": "~3.12.0",
 		"elliptic": "~6.5.4",
-		"@types/elliptic": "6.4.14",
+		"@types/elliptic": "~6.4.14",
 		"hash.js": "~1.1.7",
 		"scrypt-js": "~3.0.1",
 		"somes": "~0.11.0"

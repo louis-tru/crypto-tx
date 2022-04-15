@@ -28,14 +28,14 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const { Buffer } = require('buffer');
+const buffer = require('somes/buffer').default;
 const { keccak } = require('./keccak');
 const secp256k1 = require('./secp256k1');
 const utils_2 = require('./utils');
 
-const EC_GROUP_ORDER = Buffer.from(
+const EC_GROUP_ORDER = buffer.from(
 	'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141', 'hex');
-const ZERO32 = Buffer.alloc(32, 0);
+const ZERO32 = buffer.alloc(32, 0);
 
 const getRandomValues = utils_2.getRandomValues;
 

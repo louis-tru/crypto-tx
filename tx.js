@@ -28,11 +28,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var { Buffer } = require('buffer');
-var utils = require('./utils');
-var fees = require('./fees');
-var BN = require('bn.js');
-var assert = require('assert');
+const {default: buffer, isTypedArray} = require('somes/buffer');
+const utils = require('./utils');
+const fees = require('./fees');
+const BN = require('bn.js');
+const assert = require('assert');
 // var secp256k1 = require('./secp256k1');
 
 var _typeof = (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") ? 
@@ -85,7 +85,7 @@ function defineProperties(self, fields, data) {
 			v = utils.toBuffer(v);
 
 			if (v.toString('hex') === '00' && !field.allowZero) {
-				v = Buffer.allocUnsafe(0);
+				v = buffer.allocUnsafe(0);
 			}
 
 			if (field.allowLess && field.length) {
@@ -126,10 +126,10 @@ function defineProperties(self, fields, data) {
 	// if the constuctor is passed data
 	if (data) {
 		if (typeof data === 'string') {
-			data = Buffer.from(utils.stripHexPrefix(data), 'hex');
+			data = buffer.from(utils.stripHexPrefix(data), 'hex');
 		}
 
-		if (Buffer.isBuffer(data)) {
+		if (isTypedArray(data)) {
 			data = utils.rlp_decode(data);
 		}
 
@@ -176,49 +176,49 @@ class Transaction {
 				name: 'nonce',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}, {
 				name: 'gasPrice',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}, {
 				name: 'gasLimit',
 				alias: 'gas',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}, {
 				name: 'to',
 				allowZero: true,
 				length: 20,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}, {
 				name: 'value',
 				length: 32,
 				allowLess: true,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}, {
 				name: 'data',
 				alias: 'input',
 				allowZero: true,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}, {
 				name: 'v',
 				allowZero: true,
-				default: new Buffer([0x1c])
+				default: buffer.from([0x1c])
 			}, {
 				name: 'r',
 				length: 32,
 				allowZero: true,
 				allowLess: true,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}, {
 				name: 's',
 				length: 32,
 				allowZero: true,
 				allowLess: true,
-				default: new Buffer([])
+				default: buffer.from([]),
 			}
 		];
 

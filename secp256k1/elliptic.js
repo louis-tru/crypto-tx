@@ -30,15 +30,13 @@
 
 'use strict';
 
-var utils = require('somes').default;
-var Buffer = require('buffer').Buffer;
-var BN = require('bn.js');
-var EC = require('elliptic').ec;
-
-var errno = require('../errno');
-
-var ec = new EC('secp256k1');
-var ecparams = ec.curve;
+const utils = require('somes').default;
+const buffer = require('somes/buffer').default;
+const BN = require('bn.js');
+const EC = require('elliptic').ec;
+const errno = require('../errno');
+const ec = new EC('secp256k1');
+const ecparams = ec.curve;
 
 if (utils.haveNode) {
 	var crypto = require('crypto');
@@ -106,20 +104,20 @@ exports.privateKeyExport = function (privateKey, compressed) {
 	var d = new BN(privateKey)
 	if (d.cmp(ecparams.n) >= 0 || d.isZero()) throw new Error(errno.EC_PRIVATE_KEY_EXPORT_DER_FAIL)
 
-	return Buffer.from(ec.keyFromPrivate(privateKey).getPublic(compressed, true))
+	return buffer.from(ec.keyFromPrivate(privateKey).getPublic(compressed, true))
 }
 
 exports.privateKeyNegate = function (privateKey) {
 	var bn = new BN(privateKey)
-	return bn.isZero() ? Buffer.alloc(32) : 
-		ecparams.n.sub(bn).umod(ecparams.n).toArrayLike(Buffer, 'be', 32);
+	return bn.isZero() ? buffer.alloc(32) : 
+		buffer.from(ecparams.n.sub(bn).umod(ecparams.n).toArrayLike(Array, 'be', 32));
 }
 
 exports.privateKeyModInverse = function (privateKey) {
 	var bn = new BN(privateKey)
 	if (bn.cmp(ecparams.n) >= 0 || bn.isZero()) throw new Error(errno.EC_PRIVATE_KEY_RANGE_INVALID)
 
-	return bn.invm(ecparams.n).toArrayLike(Buffer, 'be', 32)
+	return buffer.from(bn.invm(ecparams.n).toArrayLike(Array, 'be', 32));
 }
 
 exports.privateKeyTweakAdd = function (privateKey, tweak) {
@@ -130,7 +128,7 @@ exports.privateKeyTweakAdd = function (privateKey, tweak) {
 	if (bn.cmp(ecparams.n) >= 0) bn.isub(ecparams.n)
 	if (bn.isZero()) throw new Error(errno.EC_PRIVATE_KEY_TWEAK_ADD_FAIL)
 
-	return bn.toArrayLike(Buffer, 'be', 32)
+	return buffer.from(bn.toArrayLike(Array, 'be', 32));
 }
 
 exports.privateKeyTweakMul = function (privateKey, tweak) {
@@ -140,21 +138,21 @@ exports.privateKeyTweakMul = function (privateKey, tweak) {
 	bn.imul(new BN(privateKey))
 	if (bn.cmp(ecparams.n)) bn = bn.umod(ecparams.n)
 
-	return bn.toArrayLike(Buffer, 'be', 32)
+	return buffer.from(bn.toArrayLike(Array, 'be', 32));
 }
 
 exports.publicKeyCreate = function (privateKey, compressed) {
 	var d = new BN(privateKey)
 	if (d.cmp(ecparams.n) >= 0 || d.isZero()) throw new Error(errno.EC_PUBLIC_KEY_CREATE_FAIL)
 
-	return Buffer.from(ec.keyFromPrivate(privateKey).getPublic(compressed, true))
+	return buffer.from(ec.keyFromPrivate(privateKey).getPublic(compressed, true))
 }
 
 exports.publicKeyConvert = function (publicKey, compressed) {
 	var pair = loadPublicKey(publicKey)
 	if (pair === null) throw new Error(errno.EC_PUBLIC_KEY_PARSE_FAIL)
 
-	return Buffer.from(pair.getPublic(compressed, true))
+	return buffer.from(pair.getPublic(compressed, true))
 }
 
 exports.publicKeyVerify = function (publicKey) {
@@ -168,7 +166,7 @@ exports.publicKeyTweakAdd = function (publicKey, tweak, compressed) {
 	tweak = new BN(tweak)
 	if (tweak.cmp(ecparams.n) >= 0) throw new Error(errno.EC_PUBLIC_KEY_TWEAK_ADD_FAIL)
 
-	return Buffer.from(ecparams.g.mul(tweak).add(pair.pub).encode(true, compressed))
+	return buffer.from(ecparams.g.mul(tweak).add(pair.pub).encode(true, compressed))
 }
 
 exports.publicKeyTweakMul = function (publicKey, tweak, compressed) {
@@ -179,7 +177,7 @@ exports.publicKeyTweakMul = function (publicKey, tweak, compressed) {
 	if (tweak.cmp(ecparams.n) >= 0 || tweak.isZero()) 
 		throw new Error(errno.EC_PUBLIC_KEY_TWEAK_MUL_FAIL)
 
-	return Buffer.from(pair.pub.mul(tweak).encode(true, compressed))
+	return buffer.from(pair.pub.mul(tweak).encode(true, compressed))
 }
 
 exports.publicKeyCombine = function (publicKeys, compressed) {
@@ -193,7 +191,7 @@ exports.publicKeyCombine = function (publicKeys, compressed) {
 	for (var j = 1; j < pairs.length; ++j) point = point.add(pairs[j].pub)
 	if (point.isInfinity()) throw new Error(errno.EC_PUBLIC_KEY_COMBINE_FAIL)
 
-	return Buffer.from(point.encode(true, compressed))
+	return buffer.from(point.encode(true, compressed))
 }
 
 exports.signatureNormalize = function (signature) {
@@ -224,9 +222,9 @@ exports.signatureImport = function (sigObj) {
 	var s = new BN(sigObj.s)
 	if (s.cmp(ecparams.n) >= 0) s = new BN(0)
 
-	return Buffer.concat([
-		r.toArrayLike(Buffer, 'be', 32),
-		s.toArrayLike(Buffer, 'be', 32)
+	return buffer.concat([
+		buffer.from(r.toArrayLike(Array, 'be', 32)),
+		buffer.from(s.toArrayLike(Array, 'be', 32))
 	])
 }
 
@@ -235,10 +233,10 @@ exports.sign = function (message, privateKey, noncefn, data) {
 		var getNonce = noncefn
 		noncefn = function (counter) {
 			var nonce = getNonce(message, privateKey, null, data, counter)
-			if (/*!Buffer.isBuffer(nonce)*/!(nonce instanceof Uint8Array) || nonce.length !== 32) {
+			if (!(nonce instanceof Uint8Array) || nonce.length !== 32) {
 				throw new Error(errno.ECDSA_SIGN_FAIL)
 			}
-			return new BN(nonce)
+			return new BN(nonce);
 		}
 	}
 
@@ -247,9 +245,9 @@ exports.sign = function (message, privateKey, noncefn, data) {
 
 	var result = ec.sign(message, privateKey, { canonical: true, k: noncefn, pers: data })
 	return {
-		signature: Buffer.concat([
-			result.r.toArrayLike(Buffer, 'be', 32),
-			result.s.toArrayLike(Buffer, 'be', 32)
+		signature: buffer.concat([
+			buffer.from(result.r.toArrayLike(Array, 'be', 32)),
+			buffer.from(result.s.toArrayLike(Array, 'be', 32))
 		]),
 		recovery: result.recoveryParam
 	}
