@@ -1,10 +1,15 @@
 {
 	"name": "crypto-tx",
-	"version": "0.4.8",
+	"version": "0.4.9",
 	"main": "index.js",
+	"types": "index",
 	"author": "louistru@hotmail.com",
 	"bin": {
 		"crypto-tx": "shell.js"
+	},
+	"scripts": {
+		"prepare": "npm run build",
+		"build": "tsc && cp LICENSE *.md *.json out/crypto-tx"
 	},
 	"dependencies": {
 		"bn.js": "~5.2.0",
