@@ -158,7 +158,7 @@ async function decrypt() {
 		ephemPublicKey, ciphertext, iv,
 	});
 
-	console.log('0x' + r.toString('hex'));
+	console.log('0x' + r.toString('hex'), r + '');
 }
 
 function getNonce(opts) {
