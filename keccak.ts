@@ -38,7 +38,7 @@ const RC = [
 	2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648
 ];
 
-export function toStringHex(uint8Array: Uint8Array) {
+export function toStringHex(uint8Array: number[]) {
 	var hex = '';
 	for (var i of uint8Array) {
 		hex += ((i >> 4 & 0xf).toString(16) + (i & 0xf).toString(16));
@@ -77,9 +77,10 @@ interface KeccakState {
 	blockCount: number,
 	outputBlocks: number,
 	s: number[];
+	lastByteIndex: number,
 }
 
-function Keccak(bits: number) {
+function Keccak(bits: number): KeccakState {
 	return {
 		blocks: [],
 		reset: true,
@@ -89,8 +90,9 @@ function Keccak(bits: number) {
 		outputBlocks: bits >> 5,
 		s: function (s: number[]) {
 			return ([] as any[]).concat(s, s, s, s, s);
-		}([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-	} as KeccakState;
+		}([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+		lastByteIndex: 0,
+	};
 }
 
 function update(state: KeccakState, message: ArrayLike<number> | string) {
@@ -116,12 +118,14 @@ function update(state: KeccakState, message: ArrayLike<number> | string) {
 			}
 		}
 		if (!is_string) {
+			let idx = message as ArrayLike<number>;
 			for (i = state.start; index < length && i < byteCount; ++index) {
-				blocks[i >> 2] |= message[index] << SHIFT[i++ & 3];
+				blocks[i >> 2] |= idx[index] << SHIFT[i++ & 3];
 			}
 		} else { // parse utf-8
+			let str = message as string;
 			for (i = state.start; index < length && i < byteCount; ++index) {
-				code = message.charCodeAt(index);
+				code = str.charCodeAt(index);
 				if (code < 0x80) {
 					blocks[i >> 2] |= code << SHIFT[i++ & 3];
 				} else if (code < 0x800) {
@@ -132,7 +136,7 @@ function update(state: KeccakState, message: ArrayLike<number> | string) {
 					blocks[i >> 2] |= (0x80 | code >> 6 & 0x3f) << SHIFT[i++ & 3];
 					blocks[i >> 2] |= (0x80 | code & 0x3f) << SHIFT[i++ & 3];
 				} else {
-					code = 0x10000 + ((code & 0x3ff) << 10 | message.charCodeAt(++index) & 0x3ff);
+					code = 0x10000 + ((code & 0x3ff) << 10 | str.charCodeAt(++index) & 0x3ff);
 					blocks[i >> 2] |= (0xf0 | code >> 18) << SHIFT[i++ & 3];
 					blocks[i >> 2] |= (0x80 | code >> 12 & 0x3f) << SHIFT[i++ & 3];
 					blocks[i >> 2] |= (0x80 | code >> 6 & 0x3f) << SHIFT[i++ & 3];
@@ -171,21 +175,23 @@ function update(state: KeccakState, message: ArrayLike<number> | string) {
 
 	var r = [];
 
-	// toString hex
-	var i = 0,
-			j = 0,
-			block;
-	while (j < outputBlocks) {
-		for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
-			block = s[i];
-			r.push(block & 0xff);
-			r.push(block >> 8 & 0xff);
-			r.push(block >> 16 & 0xff);
-			r.push(block >> 24 & 0xff);
-		}
-		if (j % blockCount === 0) {
-			f(s);
-			i = 0;
+	{
+		// toString hex
+		let i = 0,
+				j = 0,
+				block;
+		while (j < outputBlocks) {
+			for (i = 0; i < blockCount && j < outputBlocks; ++i, ++j) {
+				block = s[i];
+				r.push(block & 0xff);
+				r.push(block >> 8 & 0xff);
+				r.push(block >> 16 & 0xff);
+				r.push(block >> 24 & 0xff);
+			}
+			if (j % blockCount === 0) {
+				f(s);
+				i = 0;
+			}
 		}
 	}
 	return { hex: '0x' + toStringHex(r), data: r };

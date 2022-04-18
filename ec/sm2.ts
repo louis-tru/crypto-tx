@@ -1,5 +1,7 @@
 
-defineCurve('sm2p256v1', {
+import * as hash from 'hash.js';
+
+export const sm2p256v1 = {
 	type: 'short',
 	prime: null,
 	p: 'fffffffe ffffffff ffffffff ffffffff ffffffff 00000000 ffffffff ffffffff',
@@ -12,4 +14,4 @@ defineCurve('sm2p256v1', {
 		'32c4ae2c1f1981195f9904466a39c9948fe30bbff2660be1715a4589334c74c7',
 		'bc3736a2f4f6779c59bdcee36b692153d0a9877cc62a474002df32e52139f0a0'
 	]
-});
+};

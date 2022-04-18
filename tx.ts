@@ -33,7 +33,7 @@ import buffer, {Buffer} from 'somes/buffer';
 import utils from './utils';
 import fees from './fees';
 import * as BN  from 'bn.js';
-// var secp256k1 = require('./secp256k1');
+//import secp256k1 from './ec';
 
 const N_DIV_2 = new BN('7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0', 16);
 
@@ -50,6 +50,56 @@ export interface ITransactionSigner {
 	sign(message: Buffer): Promise<{ signature: Buffer, recovery: number }>;
 }
 
+const fields: Field[] = [
+	{
+		name: 'nonce',
+		length: 32,
+		allowLess: true,
+		default: buffer.from([]),
+	}, {
+		name: 'gasPrice',
+		length: 32,
+		allowLess: true,
+		default: buffer.from([]),
+	}, {
+		name: 'gasLimit',
+		alias: 'gas',
+		length: 32,
+		allowLess: true,
+		default: buffer.from([]),
+	}, {
+		name: 'to',
+		allowZero: true,
+		length: 20,
+		default: buffer.from([]),
+	}, {
+		name: 'value',
+		length: 32,
+		allowLess: true,
+		default: buffer.from([]),
+	}, {
+		name: 'data',
+		alias: 'input',
+		allowZero: true,
+		default: buffer.from([]),
+	}, {
+		name: 'v',
+		allowZero: true,
+		default: buffer.from([0x1c])
+	}, {
+		name: 'r',
+		length: 32,
+		allowZero: true,
+		allowLess: true,
+		default: buffer.from([]),
+	}, {
+		name: 's',
+		length: 32,
+		allowZero: true,
+		allowLess: true,
+		default: buffer.from([]),
+	}
+];
 
 export class Transaction {
 
@@ -70,7 +120,8 @@ export class Transaction {
 	readonly r = buffer.Zero;
 	readonly s = buffer.Zero;
 
-	private setFields(fields: Field[], opts: any) {
+	constructor(opts: Dict) {
+		// Define Properties
 		var self = this
 		var _this = self as any;
 
@@ -83,8 +134,8 @@ export class Transaction {
 				get() {
 					return self.raw[i];
 				},
-				set(v: any) {
-					v = utils.toBuffer(v);
+				set(_v: any) {
+					let v = utils.toBuffer(_v);
 	
 					if (v.toString('hex') === '00' && !field.allowZero) {
 						v = buffer.allocUnsafe(0);
@@ -115,95 +166,37 @@ export class Transaction {
 				Object.defineProperty(self, field.alias, Object.assign(prop, { enumerable: false }));
 		});
 
+		opts = opts || {}
 		//if the constuctor is passed data
-		if (opts) {
-			if (typeof opts === 'string') {
-				opts = buffer.from(utils.stripHexPrefix(opts), 'hex');
-			}
-			if (buffer.isUint8Array(opts)) {
-				opts = utils.rlp_decode(opts);
-			}
+		if (typeof opts === 'string') {
+			opts = buffer.from(utils.stripHexPrefix(opts), 'hex');
+		}
+		if (buffer.isUint8Array(opts)) {
+			opts = utils.rlp_decode(opts as any);
+		}
 
-			if (Array.isArray(opts)) {
-				if (opts.length > self._fields.length) {
-					throw new Error('wrong number of fields in data');
-				}
-				// make sure all the items are buffers
-				opts.forEach(function (d, i) {
-					_this[self._fields[i]] = utils.toBuffer(d);
-				});
+		if (Array.isArray(opts)) {
+			if (opts.length > self._fields.length) {
+				throw new Error('wrong number of fields in data');
 			}
-			else if (typeof opts == 'object' && !buffer.isUint8Array(opts)) {
-				var keys = Object.keys(opts);
+			// make sure all the items are buffers
+			opts.forEach(function (d, i) {
+				_this[self._fields[i]] = utils.toBuffer(d);
+			});
+		}
+		else if (typeof opts == 'object' && !buffer.isUint8Array(opts)) {
+			var keys = Object.keys(opts);
 
-				for (var field of fields) {
-					if (keys.indexOf(field.name) !== -1)
-						_this[field.name] = opts[field.name];
-					if (keys.indexOf(field.alias!) !== -1) 
-						_this[field.alias!] = opts[field.alias!];
-				}
-			}
-			else {
-				throw new Error('invalid data');
+			for (var field of fields) {
+				if (keys.indexOf(field.name) !== -1)
+					_this[field.name] = opts[field.name];
+				if (keys.indexOf(field.alias!) !== -1) 
+					_this[field.alias!] = opts[field.alias!];
 			}
 		}
-	}
-
-	constructor(data: Dict) {
-		data = data || {}
-		// Define Properties
-		const fields: Field[] = [
-			{
-				name: 'nonce',
-				length: 32,
-				allowLess: true,
-				default: buffer.from([]),
-			}, {
-				name: 'gasPrice',
-				length: 32,
-				allowLess: true,
-				default: buffer.from([]),
-			}, {
-				name: 'gasLimit',
-				alias: 'gas',
-				length: 32,
-				allowLess: true,
-				default: buffer.from([]),
-			}, {
-				name: 'to',
-				allowZero: true,
-				length: 20,
-				default: buffer.from([]),
-			}, {
-				name: 'value',
-				length: 32,
-				allowLess: true,
-				default: buffer.from([]),
-			}, {
-				name: 'data',
-				alias: 'input',
-				allowZero: true,
-				default: buffer.from([]),
-			}, {
-				name: 'v',
-				allowZero: true,
-				default: buffer.from([0x1c])
-			}, {
-				name: 'r',
-				length: 32,
-				allowZero: true,
-				allowLess: true,
-				default: buffer.from([]),
-			}, {
-				name: 's',
-				length: 32,
-				allowZero: true,
-				allowLess: true,
-				default: buffer.from([]),
-			}
-		];
-
-		this.setFields(fields, data);
+		else {
+			throw new Error('invalid data');
+		}
 
 		Object.defineProperty(this, 'from', {
 			enumerable: true,
@@ -217,7 +210,7 @@ export class Transaction {
 		if (chainId < 0) chainId = 0;
 
 		// set chainId
-		this._chainId = chainId || data.chainId || 0;
+		this._chainId = chainId || opts.chainId || 0;
 		this._homestead = true;
 	}
 

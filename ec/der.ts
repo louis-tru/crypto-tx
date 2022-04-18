@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-import buffer, {IBuffer} from 'somes/buffer';
+import buffer, {Buffer} from 'somes/buffer';
 import * as bip66 from './bip66';
 
 var EC_PRIVKEY_EXPORT_DER_COMPRESSED = buffer.from([
@@ -51,7 +51,7 @@ var EC_PRIVKEY_EXPORT_DER_COMPRESSED = buffer.from([
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00
-])
+]);
 
 var EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED = buffer.from([
 	// begin
@@ -77,9 +77,14 @@ var EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED = buffer.from([
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00
-])
+]);
 
-export function privateKeyExport(privateKey: IBuffer, publicKey: IBuffer, compressed?: boolean) {
+export interface Signature {
+	r: Buffer;
+	s: Buffer;
+}
+
+export function privateKeyExport(privateKey: Buffer, publicKey: Buffer, compressed?: boolean) {
 	var result = buffer.from(compressed ? 
 		EC_PRIVKEY_EXPORT_DER_COMPRESSED : EC_PRIVKEY_EXPORT_DER_UNCOMPRESSED)
 	privateKey.copy(result, compressed ? 8 : 9)
@@ -87,7 +92,7 @@ export function privateKeyExport(privateKey: IBuffer, publicKey: IBuffer, compre
 	return result
 }
 
-export function privateKeyImport(privateKey: IBuffer) {
+export function privateKeyImport(privateKey: Buffer) {
 	var length = privateKey.length
 
 	// sequence header
@@ -128,19 +133,19 @@ export function privateKeyImport(privateKey: IBuffer) {
 	return privateKey.slice(index + 2, index + 2 + privateKey[index + 1])
 }
 
-export function signatureExport(sigObj) {
-	var r = buffer.concat([Buffer.from([0]), sigObj.r])
-	for (var lenR = 33, posR = 0; 
+export function signatureExport(sigObj: Signature) {
+	var r = buffer.concat([buffer.from([0]), sigObj.r]);
+	for (var lenR = 33, posR = 0;
 		lenR > 1 && r[posR] === 0x00 && !(r[posR + 1] & 0x80); --lenR, ++posR);
 
-	var s = buffer.concat([buffer.from([0]), sigObj.s])
-	for (var lenS = 33, posS = 0; 
+	var s = buffer.concat([buffer.from([0]), sigObj.s]);
+	for (var lenS = 33, posS = 0;
 		lenS > 1 && s[posS] === 0x00 && !(s[posS + 1] & 0x80); --lenS, ++posS);
 
 	return bip66.encode(r.slice(posR), s.slice(posS))
 }
 
-export function signatureImport(sig) {
+export function signatureImport(sig: Buffer) {
 	var r = buffer.alloc(32);
 	var s = buffer.alloc(32);
 
@@ -160,7 +165,7 @@ export function signatureImport(sig) {
 	return { r: r, s: s }
 }
 
-export function signatureImportLaxexport(sig) {
+export function signatureImportLaxexport(sig: Buffer) {
 	var r = buffer.alloc(32);
 	var s = buffer.alloc(32);
 

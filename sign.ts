@@ -1,10 +1,29 @@
 
-const buffer = require('somes/buffer').default;
-const crypto_tx = require('./index');
-const toBuffer = require('./utils').toBuffer;
-const assert = require('./assert');
+import buffer, {Buffer} from 'somes/buffer';
+import {keccak} from './keccak';
+import {toBuffer} from './utils';
+import assert from './assert';
+import k1 from './ec';
 
-const ArgumentsBytesLen = {
+export type Types = 'address' | 'int256' |
+'int160' |
+'int128' |
+'int64' |
+'int32' |
+'int16' |
+'int8' |
+'uint256' |
+'uint160' |
+'uint128' |
+'uint64' |
+'uint32' |
+'uint16' |
+'uint8' |
+'byte32' |
+'bytes' |
+'string';
+
+const ArgumentsBytesLen: Dict<number> = {
 	'address': 20,
 	'int256': 32,
 	'int160': 20,
@@ -25,11 +44,13 @@ const ArgumentsBytesLen = {
 	'string': -1,
 };
 
-function message(data, types) {
-	return buffer.from(crypto_tx.keccak(concat(data, types)).data);
+export type Data = string | number| bigint | Uint8Array | ArrayLike<number>;
+
+export function message(data: Data[], types: Types[]) {
+	return buffer.from(keccak(concat(data, types)).data);
 }
 
-function concat(data, types) {
+export function concat(data: Data[], types: Types[]) {
 	const args = [];
 
 	for (var i = 0; i < data.length; i++) {
@@ -48,9 +69,9 @@ function concat(data, types) {
 	return buffer.concat(args);
 }
 
-function signArgumentsFromTypes(data, types, privateKey, options) {
+export function signArgumentsFromTypes(data: Data[], types: Types[], privateKey: Buffer, options?: { noncefn?: ()=>Buffer, data?: Buffer }) {
 
-	var signature = crypto_tx.sign(message(data, types), privateKey, options);
+	var signature = k1.sign(message(data, types), privateKey, options);
 
 	return {
 		r: '0x' + signature.signature.slice(0, 32).toString('hex'),
@@ -72,7 +93,3 @@ function signArgumentsFromTypes(data, types, privateKey, options) {
 // 	['address', 'address', 'uint256', 'uint256'],
 // 	toBuffer('0x8bd71af62734df779b28b3bfc1a52582e6c0108fbec174d91ce5ba8d2788fb89')
 // );
-
-exports.message = message;
-exports.concat = concat;
-exports.signArgumentsFromTypes = signArgumentsFromTypes;

@@ -30,31 +30,31 @@
 
 import buffer, {Buffer} from 'somes/buffer';
 import { keccak } from './keccak';
-import secp256k1 from './secp256k1';
-import * as utils_2 from './utils';
+import k1 from './ec';
+import * as utils from './utils';
 import {rng} from 'somes/rng';
 
 const EC_GROUP_ORDER = buffer.from(
 	'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141', 'hex');
 const ZERO32 = buffer.alloc(32, 0);
 
-const getRandomValues = utils_2.getRandomValues;
+export const getRandomValues = utils.getRandomValues;
 
-function isValidPrivateKey(privateKey: Buffer) {
+export function isValidPrivateKey(privateKey: Buffer) {
 	if (privateKey.length === 32) {
 		return privateKey.compare(ZERO32) > 0 && // > 0
 		privateKey.compare(EC_GROUP_ORDER) < 0; // < G
 	}
 }
 
-function genPrivateKey() {
+export function genPrivateKey() {
 	do {
 		var privateKey = getRandomValues(32);
 	} while (!isValidPrivateKey(privateKey));
 	return privateKey;
 }
 
-function toChecksumAddress(address: string | Buffer) {
+export function toChecksumAddress(address: string | Buffer) {
 	if (typeof address == 'string') {
 		address = address.slice(2).toLowerCase();
 	} else {
@@ -74,32 +74,34 @@ function toChecksumAddress(address: string | Buffer) {
 	return checksumAddress;
 }
 
-function checksumAddress(address: string | Buffer) {
+export function checksumAddress(address: string | Buffer) {
 	return '0x' + toChecksumAddress(address);
 }
 
-function publicToAddress(publicKey, fmt = 'address') {
-	var address = utils_2.publicToAddress(publicKey, true);
+export function publicToAddress(publicKey: Buffer, fmt = 'address') {
+	var address = utils.publicToAddress(publicKey, true);
 	if (fmt == 'binary') {
 		return address; // binary
 	}	else {
-		address = toChecksumAddress(address);
-		return fmt == 'address' ? '0x' + address: address;
+		var addr = toChecksumAddress(address);
+		return fmt == 'address' ? '0x' + addr: addr;
 	}
 }
 
-function getAddress(privateKey, fmt = 'address') {
+export function getAddress(privateKey: Buffer, fmt = 'address') {
 	return publicToAddress(getPublic(privateKey), fmt);
 }
 
-function getPublic(privateKey, compressed = false) {
-	return secp256k1.publicKeyCreate(privateKey, compressed);
+export function getPublic(privateKey: Buffer, compressed = false) {
+	return k1.publicKeyCreate(privateKey, compressed);
 }
 
-const publicKeyConvert = secp256k1.publicKeyConvert;
+export function publicKeyConvert(publicKey: Buffer, compressed?: boolean) {
+	return k1.publicKeyConvert(publicKey, compressed);
+}
 
-function publicKeyConvertDetails(public_key) {
-	public_key = utils_2.toBuffer(public_key);
+export function publicKeyConvertDetails(public_key: any) {
+	public_key = utils.toBuffer(public_key);
 	var publicKeyLong = publicKeyConvert(public_key, false);
 	var publicKey = publicKeyConvert(publicKeyLong);
 	var address = publicToAddress(publicKeyLong, 'binary');
@@ -119,7 +121,7 @@ function publicKeyConvertDetails(public_key) {
 	};
 }
 
-function checkAddressHex(addressHex) {
+export function checkAddressHex(addressHex: any) {
 	if (typeof addressHex == 'string') {
 		if (addressHex.length == 42 && addressHex[0] == '0' && addressHex[1] == 'x') {
 			var _0 = '0'.charCodeAt(0), _9 = '9'.charCodeAt(0);
@@ -142,32 +144,15 @@ function checkAddressHex(addressHex) {
 	return false;
 }
 
-function sign(message, privateKey, options) {
-	options = Object.assign({ noncefn: ()=>rng.rnk(32) }, options);
-	return secp256k1.sign(message, privateKey, options);
+export function sign(message: Buffer, privateKey: Buffer, options: any) {
+	options = Object.assign({ noncefn: ()=>rng(32) }, options);
+	return k1.sign(message, privateKey, options);
 }
 
-function verify(message, signature, publicKeyTo, canonical) {
-	return secp256k1.verify(message, signature, publicKeyTo, canonical);
+export function verify(message: Buffer, signature: Buffer, publicKeyTo: Buffer, canonical?: boolean) {
+	return k1.verify(message, signature, publicKeyTo, canonical);
 }
 
-function recover(message, signature, recovery, compressed = true) {
-	return secp256k1.recover(message, signature, recovery, compressed);
+export function recover(message: Buffer, signature: Buffer, recovery: number, compressed = true) {
+	return k1.recover(message, signature, recovery, compressed);
 }
-
-module.exports = {
-	getRandomValues,
-	isValidPrivateKey,
-	genPrivateKey,
-	getPublic,
-	publicToAddress,
-	checkAddressHex,
-	getAddress,
-	toChecksumAddress,
-	checksumAddress,
-	publicKeyConvert,
-	publicKeyConvertDetails,
-	sign,
-	verify,
-	recover,
-};

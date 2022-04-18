@@ -28,25 +28,65 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const utils = require('somes').default;
-const uuid = require('somes/hash/uuid').default;
-const scrypt = require('scrypt-js');
-const assert = require('./assert');
-const keccak = require('./keccak');
-const buffer = require('somes/buffer').default;
-const account = require('./account');
-const utils_2 = require('./utils');
+import somes from 'somes';
+import uuid from 'somes/hash/uuid';
+import * as scrypt from 'scrypt-js';
+import * as assert from './assert';
+import * as keccak from './keccak';
+import buffer, {Buffer} from 'somes/buffer';
+import * as account from './account';
+import * as utils from './utils';
 
-if (utils.haveNode) {
+if (somes.haveNode) {
 	var cryp = require('crypto');
 } else {
 	var cryp = require('crypto-browserify'); // TODO
 }
 
-function encryptPrivateKey(privateKey, password, options) {
+//import * as crypt from 'crypto';
+
+export interface EncryptOptions {
+	kdf?: 'pbkdf2' | 'scrypt',
+	dklen?: number,
+	salt?: Buffer,
+	iv?: Buffer,
+	c?: number,
+	n?: number,
+	r?: number,
+	p?: number,
+	cipher?: 'aes-128-gcm' | 'aes-192-gcm' | 'aes-256-gcm',
+	uuid?: Buffer,
+}
+
+export interface Keystore {
+	version: number,
+	id: string,
+	address: string,
+	crypto: {
+		ciphertext: string,
+		cipherparams: {
+			iv: string
+		},
+		cipher: 'aes-128-gcm' | 'aes-192-gcm' | 'aes-256-gcm',
+		kdf: 'pbkdf2' | 'scrypt',
+		kdfparams: {
+			dklen: number,
+			salt: string,
+			c?: number,
+			prf?: 'hmac-sha256',
+			// scrypt
+			n?: number,
+			r?: number,
+			p?: number,
+		},
+		mac: string,
+	}
+}
+
+export function encryptPrivateKey(privateKey: Buffer, password: string, options?: EncryptOptions) {
 	/* jshint maxcomplexity: 20 */
 
-	privateKey = utils_2.toBuffer(privateKey);
+	privateKey = utils.toBuffer(privateKey);
 	var publicKey = account.getPublic(privateKey);
 	var details = account.publicKeyConvertDetails(publicKey);
 
@@ -56,9 +96,10 @@ function encryptPrivateKey(privateKey, password, options) {
 
 	var derivedKey;
 	var kdf = options.kdf || 'scrypt';
-	var kdfparams = {
+	var kdfparams: any = {
 		dklen: options.dklen || 32,
-		salt: salt.toString('hex')
+		salt: salt.toString('hex'),
+		//n: 0, c: 0, prf: '', r: 0, p: 0,
 	};
 
 	if (kdf === 'pbkdf2') {
@@ -84,7 +125,7 @@ function encryptPrivateKey(privateKey, password, options) {
 
 	var ciphertext = buffer.concat([cipher.update(privateKey), cipher.final()]);
 
-	var mac = keccak.keccak(buffer.concat([derivedKey.slice(16, 32), buffer.from(ciphertext, 'hex')])).hex.replace('0x', '');
+	var mac = keccak.keccak(buffer.concat([derivedKey.slice(16, 32), ciphertext])).hex.replace('0x', '');
 
 	return {
 		version: 3,
@@ -98,18 +139,18 @@ function encryptPrivateKey(privateKey, password, options) {
 			cipher: options.cipher || 'aes-128-ctr',
 			kdf: kdf,
 			kdfparams: kdfparams,
-			mac: mac.toString('hex')
+			mac: mac,
 		}
 	};
 }
 
-function decryptPrivateKey(v3Keystore, password) {
+export function decryptPrivateKey(keystore_v3: Keystore, password: string) {
 	/* jshint maxcomplexity: 10 */
 
 	assert.isString(password, 'No password given.');
-	assert.isObject(v3Keystore, 'No v3Keystore given.');
+	assert.isObject(keystore_v3, 'No v3Keystore given.');
 
-	var json = v3Keystore;
+	var json = keystore_v3;
 
 	if (json.version !== 3) {
 		throw new Error('Not a valid V3 wallet');
@@ -121,14 +162,14 @@ function decryptPrivateKey(v3Keystore, password) {
 		kdfparams = json.crypto.kdfparams;
 
 		// FIXME: support progress reporting callback
-		derivedKey = scrypt.syncScrypt(buffer.from(password), buffer.from(kdfparams.salt, 'hex'), kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen);
+		derivedKey = scrypt.syncScrypt(buffer.from(password), buffer.from(kdfparams.salt, 'hex'),
+			kdfparams.n as number, kdfparams.r as number, kdfparams.p as number, kdfparams.dklen);
 	} else if (json.crypto.kdf === 'pbkdf2') {
 		kdfparams = json.crypto.kdfparams;
 
 		if (kdfparams.prf !== 'hmac-sha256') {
 			throw new Error('Unsupported parameters to PBKDF2');
 		}
-
 		derivedKey = cryp.pbkdf2Sync(buffer.from(password), buffer.from(kdfparams.salt, 'hex'), kdfparams.c, kdfparams.dklen, 'sha256');
 	} else {
 		throw new Error('Unsupported key derivation scheme');
@@ -148,8 +189,3 @@ function decryptPrivateKey(v3Keystore, password) {
 
 	return privateKey;
 }
-
-module.exports = {
-	encryptPrivateKey,
-	decryptPrivateKey,
-};

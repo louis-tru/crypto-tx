@@ -1,19 +1,18 @@
 
-// var somes = require('somes').default;
-var account = require('./account');
-var hash_js = require('hash.js');
-var buffer = require('somes/buffer').default;
+import * as account from './account';
+import * as hash_js from 'hash.js';
+import buffer, {Buffer} from 'somes/buffer';
 
-function sha256(k, enc) {
-	return new hash_js.sha256().update(k).digest(enc);
+function sha256(k: string | Buffer | ArrayLike<number>) {
+	return hash_js.sha256().update(k).digest();
 }
 
-function ripemd160(k, enc) {
-	return new hash_js.ripemd160().update(k).digest(enc);
+function ripemd160(k: string | Buffer | ArrayLike<number>) {
+	return hash_js.ripemd160().update(k).digest();
 }
 
-function getWIFKey(privateKey_bin, compress = false, test = false) { // get btc wif private key from private ey
-	var k = buffer.concat([[test ? 0xEF : 0x80/*0x80 mainnet| 0xEF tstnet*/], privateKey_bin, compress ? [0x01]: []]);
+export function getWIFKey(privateKey: Buffer, compress = false, test = false) { // get btc wif private key from private ey
+	var k = buffer.concat([[test ? 0xEF : 0x80/*0x80 mainnet| 0xEF tstnet*/], privateKey, compress ? [0x01]: []]);
 	var hash = sha256(sha256(k));
 	var check = hash.slice(0, 4);
 	var wif = buffer.concat([k, check]);
@@ -21,12 +20,12 @@ function getWIFKey(privateKey_bin, compress = false, test = false) { // get btc 
 	return wif;
 }
 
-function getAddress(publicKey_bin, compress = false, test = false) { // get btc address from public key
+export function getAddress(publicKey: Buffer, compress = false, test = false) { // get btc address from public key
 	// 0	00	P2PKH address	1	17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem
 	// 5	05	P2SH address	3	3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX
 	// 111	6F	Testnet P2PKH address pub key	m or n	mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn
 	// 196	C4	Testnet P2SH address pub key	m or n	mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn
-	var pub = account.publicKeyConvert(publicKey_bin, compress);
+	var pub = account.publicKeyConvert(publicKey, compress);
 	var hash = buffer.concat([[test ? 0x6F : 0x00], ripemd160(sha256(pub))]);
 	var check = sha256(sha256(hash)).slice(0, 4);
 	var address = buffer.concat([hash, check]);
@@ -35,13 +34,12 @@ function getAddress(publicKey_bin, compress = false, test = false) { // get btc 
 	return address;
 }
 
-function getAddressFromPrivateKey(private_key_bin, compress = false, test = false) {
-	var publicKey = buffer.from(account.getPublic(private_key_bin, compress));
+export function getAddressFromPrivateKey(private_key: Buffer, compress = false, test = false) {
+	var publicKey = buffer.from(account.getPublic(private_key, compress));
 	return getAddress(publicKey, compress, test);
 }
 
-function parseWIFKey(wif_bin) { // wif key bin
-	var wif = wif_bin;
+export function parseWIFKey(wif: Buffer) { // wif key bin
 	var compress = wif.length == 38 && wif[33] == 0x01;
 	var network = wif[0];
 	var privateKey = wif.slice(1, 33);
@@ -59,8 +57,7 @@ function parseWIFKey(wif_bin) { // wif key bin
 	};
 }
 
-function parseAddress(address_bin) {
-	var address = address_bin;
+export function parseAddress(address: Buffer) {
 	var type = address[0];
 	var hash = address.slice(1, 20);
 	var check = address.slice(21, 4);
@@ -70,18 +67,10 @@ function parseAddress(address_bin) {
 	};
 }
 
-function parseWIFKeyFromB58String(wif_b58_str) { // wif key base58 string
-	return parseWIFKey(buffer.from(wif_b58_str, 'base58'));
+export function parseWIFKeyFromB58String(wif_b58: string) { // wif key base58 string
+	return parseWIFKey(buffer.from(wif_b58, 'base58'));
 }
 
-function parseAddressFromB58String(address_b58_str) {
-	return parseAddress(buffer.from(address_b58_str, 'base58'));
+export function parseAddressFromB58String(address_b58: string) {
+	return parseAddress(buffer.from(address_b58, 'base58'));
 }
-
-exports.getAddressFromPrivateKey = getAddressFromPrivateKey;
-exports.getWIFKey = getWIFKey;
-exports.parseWIFKeyFromB58String = parseWIFKeyFromB58String;
-exports.getAddress = getAddress;
-exports.parseWIFKey = parseWIFKey;
-exports.parseAddress = parseAddress;
-exports.parseAddressFromB58String = parseAddressFromB58String;

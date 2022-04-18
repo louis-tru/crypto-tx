@@ -30,7 +30,7 @@
 
 import somes from 'somes';
 import * as assert from 'assert';
-import secp256k1 from './secp256k1';
+import secp256k1 from './ec';
 import buffer, {Buffer} from 'somes/buffer';
 import * as BN from 'bn.js';
 import {keccak as sha3} from './keccak';
@@ -41,9 +41,9 @@ if (somes.haveNode) {
 	var browserCrypto = (global.crypto || (global as any).msCrypto || {}) as typeof global.crypto;
 }
 
-export function getRandomValues(len: number) {
+export function getRandomValues(len: number): Buffer {
 	if (crypto) { // node
-		return crypto.randomBytes(len);
+		return buffer.from(crypto.randomBytes(len));
 	} else { // web
 		return buffer.from(browserCrypto.getRandomValues(new Uint8Array(len)));
 	}
@@ -363,11 +363,11 @@ export function bufferToInt(buf: Uint8Array) {
  * @param {String} str the string value
  * @return {String|Optional} a string by pass if necessary
  */
- export function stripHexPrefix(str: any) {
+ export function stripHexPrefix<T>(str: T): T {
 	if (typeof str !== 'string') {
 		return str;
 	}
-	return isHexPrefixed(str) ? str.slice(2) : str;
+	return isHexPrefixed(str) ? str.slice(2) : str as any;
 }
 
 /**
@@ -403,7 +403,9 @@ export function isHexString(value: string, length?: number) {
 		return false;
 	}
 
-	if (length && value.length !== 2 + 2 * length) { return false; }
+	if (length && value.length !== 2 + 2 * length) {
+		return false;
+	}
 
 	return true;
 }
@@ -463,11 +465,11 @@ export function baToJSON(ba: Uint8Array | any[]): string | string[] | null {
  * @param {Buffer|Array|String} a
  * @return {Buffer|Array|String}
  */
-export function stripZeros(a: string | Buffer | Array<number>) {
-	a = stripHexPrefix(a);
+export function stripZeros<T extends string | Buffer | Array<number>>(_a: T) {
+	let a = stripHexPrefix(_a);
 	var first = a[0];
 	while (a.length > 0 && first.toString() === '0') {
-		a = a.slice(1);
+		a = a.slice(1) as any;
 		first = a[0];
 	}
 	return a;

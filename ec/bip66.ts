@@ -28,9 +28,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-import buffer, {IBuffer} from 'somes/buffer';
+import buffer, {Buffer} from 'somes/buffer';
 
-export function check(buffer: IBuffer) {
+export function check(buffer: Buffer) {
 	if (buffer.length < 8) return false
 	if (buffer.length > 72) return false
 	if (buffer[0] !== 0x30) return false
@@ -54,7 +54,7 @@ export function check(buffer: IBuffer) {
 	return true
 }
 
-export function decode(buffer: IBuffer) {
+export function decode(buffer: Buffer) {
 	if (buffer.length < 8) throw new Error('DER sequence length is too short')
 	if (buffer.length > 72) throw new Error('DER sequence length is too long')
 	if (buffer[0] !== 0x30) throw new Error('Expected DER sequence')
@@ -105,7 +105,7 @@ export function decode(buffer: IBuffer) {
  *  62300 => 0x00f35c
  * -62300 => 0xff0ca4
 */
-export function encode(r: IBuffer, s: IBuffer) {
+export function encode(r: Buffer, s: Buffer) {
 	var lenR = r.length
 	var lenS = s.length
 	if (lenR === 0) throw new Error('R length is zero')

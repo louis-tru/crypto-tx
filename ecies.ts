@@ -28,30 +28,33 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const utils = require('somes').default;
-const buffer = require('somes/buffer').default;
-const secp256k1 = require('./secp256k1');
-const assert = require('./assert');
-const utils_2 = require('./utils');
-const account = require('./account');
+import somes from 'somes';
+import utils from 'somes';
+import buffer, {Buffer} from 'somes/buffer';
+import secp256k1 from './ec';
+import * as assert from './assert';
+import utils_2 from './utils';
+import * as account from './account';
 
 if (utils.haveNode) {
 	var crypto = require('crypto');
 } else {
 	var hash_js = require('hash.js');
-	var _subtle;
+	var _subtle: SubtleCrypto;
 	var getSubtle = function() {
 		if (!_subtle) {
-			var browserCrypto = global.crypto || global.msCrypto || {};
-			_subtle = browserCrypto.subtle || browserCrypto.webkitSubtle;
+			var browserCrypto = global.crypto || (global as any).msCrypto || {};
+			_subtle = browserCrypto.subtle || (browserCrypto as any).webkitSubtle;
 			utils.assert(_subtle, `not find web crypto.subtle`);
 		}
 		return _subtle;
 	};
 }
 
+export {};
+
 // Compare two buffers in constant time to prevent timing attacks.
-function equalConstTime(b1, b2) {
+function equalConstTime(b1: Buffer, b2: Buffer) {
 	if (b1.length !== b2.length) {
 		return false;
 	}
@@ -62,11 +65,11 @@ function equalConstTime(b1, b2) {
 	return res === 0;
 }
 
-function ecdh(publicKeyA, privateKeyB) {
+export function ecdh(publicKeyA: Buffer, privateKeyB: Buffer) {
 	return secp256k1.ecdh(publicKeyA, privateKeyB);
 }
 
-function sha512(msg) {
+function sha512(msg: Uint8Array | string) {
 	if (crypto) {
 		return crypto.createHash("sha512").update(msg).digest();
 	} else {
@@ -74,7 +77,9 @@ function sha512(msg) {
 	}
 }
 
-function hmacSha256(key, msg) {
+// import * as crypt from 'crypto';
+
+function hmacSha256(key: Uint8Array | string, msg: Uint8Array | string) {
 	if (crypto) {
 		return crypto.createHmac('sha256', key).update(msg).digest();
 	} else {
@@ -82,27 +87,28 @@ function hmacSha256(key, msg) {
 	}
 }
 
-function getCryptoSubtleAes(op) {
-	return async function(iv, key, data) {
+function getCryptoSubtleAes(op: KeyUsage) {
+	return async function(iv: Uint8Array, key: Uint8Array, data: Uint8Array) {
 		assert.isBuffer(iv, 'Bad AES iv');
 		assert.isBuffer(key, 'Bad AES key');
 		assert.isBuffer(data, 'Bad AES data');
 		var algorithm = { name: 'AES-CBC' };
 		var cryptoKey = await getSubtle().importKey('raw', key, algorithm, false, [op]);
 		var encAlgorithm = { name: 'AES-CBC', iv: iv };
-		var result = await getSubtle()[op](encAlgorithm, cryptoKey, data);
+		var fn = getSubtle()[op] as any;
+		var result = await fn(encAlgorithm, cryptoKey, data);
 		return buffer.from(new Uint8Array(result));
 	}
 }
 
-var aes256CbcEncrypt = crypto ? async function(iv, key, plaintext) {
+export const aes256CbcEncrypt = crypto ? async function(iv: Uint8Array, key: Uint8Array, plaintext: string | Uint8Array) {
 	var cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
 	var firstChunk = cipher.update(plaintext);
 	var secondChunk = cipher.final();
 	return buffer.concat([firstChunk, secondChunk]);
 }: getCryptoSubtleAes('encrypt');
 
-var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {
+export const aes256CbcDecrypt = crypto ? async function(iv: Uint8Array, key: Uint8Array, ciphertext: Uint8Array) {
 	var cipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
 	var firstChunk = cipher.update(ciphertext);
 	var secondChunk = cipher.final();
@@ -119,11 +125,11 @@ var aes256CbcDecrypt = crypto ? async function(iv, key, ciphertext) {
  * @return {Promise.<Ecies>} - A promise that resolves with the ECIES
  * structure on successful encryption and rejects on failure.
  */
-async function encryptECIES(publicKeyTo, message, options) {
+export async function encryptECIES(publicKeyTo: Buffer, message: Buffer, options?: {iv?: Buffer, ephemPrivateKey?: Buffer}) {
 	options = options || {};
 	// Tmp variable to save context from flat promises;
 	var ephemPrivateKey = options.ephemPrivateKey || account.genPrivateKey();
-	assert(account.isValidPrivateKey(ephemPrivateKey), 'Bad private key invalid');
+	somes.assert(account.isValidPrivateKey(ephemPrivateKey), 'Bad private key invalid');
 
 	var ephemPublicKey = account.getPublic(ephemPrivateKey);
 	var px = ecdh(publicKeyTo, ephemPrivateKey);
@@ -153,10 +159,10 @@ async function encryptECIES(publicKeyTo, message, options) {
  * @return {Promise.<Buffer>} - A promise that resolves with the
  * plaintext on successful decryption and rejects on failure.
  */
-async function decryptECIES(privateKey, options) {
+export async function decryptECIES(privateKey: Buffer, options: { ephemPublicKey: Buffer, iv: Buffer, mac: Buffer, ciphertext: Buffer}) {
 	assert.isBuffer(privateKey, 'Bad private key');
 	assert.isBufferLength(privateKey, 32, 'Bad private key length');
-	assert(account.isValidPrivateKey(privateKey), 'Bad private key invalid');
+	somes.assert(account.isValidPrivateKey(privateKey), 'Bad private key invalid');
 
 	var px = ecdh(options.ephemPublicKey, privateKey);
 	var hash = sha512(px);
@@ -173,18 +179,10 @@ async function decryptECIES(privateKey, options) {
 			options.ciphertext
 		]);
 		var realMac = hmacSha256(macKey, dataToMac);
-		assert(equalConstTime(options.mac, realMac), 'Bad MAC');
+		somes.assert(equalConstTime(options.mac, realMac), 'Bad MAC');
 	}
 
 	var result = await aes256CbcDecrypt(iv, encryptionKey, options.ciphertext);
 
 	return result;
 }
-
-module.exports = {
-	ecdh,
-	aes256CbcEncrypt,
-	aes256CbcDecrypt,
-	encryptECIES,
-	decryptECIES,
-};
