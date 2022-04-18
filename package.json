@@ -8,8 +8,8 @@
 		"crypto-tx": "shell.js"
 	},
 	"scripts": {
-		"prepare": "npm run build",
-		"build": "tsc && cp LICENSE *.md *.json *.sh out/crypto-tx"
+		"_prepare": "npm run build",
+		"build": "tsc && cp LICENSE *.md *.json out/crypto-tx"
 	},
 	"dependencies": {
 		"bn.js": "~5.2.0",
