@@ -71,12 +71,15 @@ export function concat(data: Data[], types: Types[]) {
 
 export function signArgumentsFromTypes(data: Data[], types: Types[], privateKey: Buffer, options?: { noncefn?: ()=>Buffer, data?: Buffer }) {
 
-	var signature = k1.sign(message(data, types), privateKey, options);
+	var msg = message(data, types);
+
+	var signature = k1.sign(msg, privateKey, options);
 
 	return {
 		r: '0x' + signature.signature.slice(0, 32).toString('hex'),
 		s: '0x' + signature.signature.slice(32, 64).toString('hex'),
 		v: signature.recovery,
+		message: '0x' + msg.toString('hex'),
 	};
 }
 

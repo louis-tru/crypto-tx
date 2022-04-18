@@ -31,7 +31,7 @@
 
 var crypto = require('./index');
 var assert = require('./assert');
-var arguments = require('somes/arguments');
+var argument = require('somes/arguments');
 var buffer = require('somes/buffer').default;
 var toBuffer = require('./utils').toBuffer;
 var sign = require('./sign');
@@ -39,9 +39,9 @@ var rng = require('somes/rng');
 var somes = require('somes').default;
 var buffer = require('somes/buffer').default;
 var keystore = require('./keystore');
-var opts = arguments.options;
-var help_info = arguments.helpInfo;
-var def_opts = arguments.defOpts;
+var opts = argument.options;
+var help_info = argument.helpInfo;
+var def_opts = argument.defOpts;
 
 def_opts(['G'],             0,  '-G          cmd gen private and public keys');
 def_opts(['C'],             0,  '-C          cmd convert output public key and address');
@@ -92,7 +92,7 @@ function printHelp(code = -1) {
 }
 
 function message() {
-	var d = data();
+	// var d = data();
 	// console.log(d + '')
 	return buffer.from(crypto.keccak(data()).data);
 }
@@ -163,7 +163,9 @@ async function decrypt() {
 
 function getNonce(opts) {
 	var nonce = rng.rng(32);
-	var noncefn = function() { return nonce };
+	var noncefn = function() {
+		return nonce
+	};
 	if (opts.nonce) {
 		if (opts.nonce == 'none') {
 			nonce = '';
@@ -187,7 +189,9 @@ function sign1() {
 	assert.isBufferLength(privateKey, 32, 'Bad privateKey length');
 	assert.isBufferLength(data, 32, 'Bad data length');
 
-	var signature = crypto.sign(data, privateKey);
+	var {nonce, noncefn} = getNonce(opts);
+
+	var signature = crypto.sign(data, privateKey, {noncefn});
 	var signature_buf = buffer.concat([signature.signature, buffer.from([signature.recovery])]);
 
 	if (opts.json) {
@@ -222,8 +226,9 @@ function sign2() {
 		console.log('S:', rsv.s);
 		console.log('V:', rsv.v);
 		console.log('nonce: ', nonce);
-
-		var s = Buffer.concat([
+		console.log('message: ', rsv.message);
+		
+		var s = buffer.concat([
 			Buffer.from(rsv.r.slice(2) + rsv.s.slice(2), 'hex'), 
 			Buffer.from([rsv.v])
 		]);

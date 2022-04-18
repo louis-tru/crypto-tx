@@ -144,7 +144,10 @@ export function checkAddressHex(addressHex: any) {
 	return false;
 }
 
-export function sign(message: Buffer, privateKey: Buffer, options: any) {
+export function sign(message: Buffer, privateKey: Buffer, options?: {
+	noncefn?: () => Buffer;
+	data?: Buffer;
+}) {
 	options = Object.assign({ noncefn: ()=>rng(32) }, options);
 	return k1.sign(message, privateKey, options);
 }

@@ -29,18 +29,33 @@
  * ***** END LICENSE BLOCK ***** */
 
 import * as assert from './assert';
-import * as account from './account';
-import * as ecies from './ecies';
-import * as tx from './tx';
 import * as kk from './keccak';
 import * as utils from './utils';
+import secp256k1 from './ec';
 
-export * from './assert';
-export * from './ec';
-
-export const toBuffer = utils.toBuffer;
-export const keccak = kk.keccak;
+const toBuffer = utils.toBuffer;
+const keccak = kk.keccak;
 
 export {
-	assert, account, ecies, tx,
-}
+	assert, secp256k1, toBuffer, keccak,
+};
+
+export * from './assert';
+export * from './account';
+export * from './ecies';
+export * from './tx';
+
+// var assert = require('./assert');
+// var account = require('./account');
+// var ecies = require('./ecies');
+// var tx = require('./tx');
+// var secp256k1 = require('./secp256k1');
+// var keccak = require('./keccak');
+// var utils = require('./utils');
+
+// module.exports = Object.assign({
+// 	assert,
+// 	secp256k1,
+// 	toBuffer: utils.toBuffer,
+// 	keccak: keccak.keccak,
+// }, assert, account, ecies, tx);
