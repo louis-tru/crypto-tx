@@ -205,7 +205,7 @@ export class SafeEC {
 		throw new Error(errno.ECDSA_SIGNATURE_PARSE_DER_FAIL)
 	}
 
-	sign(message: Buffer, privateKey: Buffer, options?: { noncefn?: ()=>Buffer, data?: Buffer }) {
+	sign(message: Buffer, privateKey: Buffer, options?: { noncefn?: (()=>Buffer)|null, data?: Buffer }) {
 		assert.isBuffer(message, errno.MSG32_TYPE_INVALID)
 		assert.isBufferLength(message, 32, errno.MSG32_LENGTH_INVALID)
 

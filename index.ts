@@ -44,6 +44,7 @@ export * from './assert';
 export * from './account';
 export * from './ecies';
 export * from './tx';
+export * from './ec';
 
 // var assert = require('./assert');
 // var account = require('./account');
