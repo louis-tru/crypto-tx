@@ -1,5 +1,5 @@
 
-var btc = require('../btc');
+var btc = require('./btc');
 var buffer = require('somes/buffer').default;
 
 function test(k, compress) {

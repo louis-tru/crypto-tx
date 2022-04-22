@@ -1,5 +1,5 @@
 
-var crypto_tx = require('..');
+var crypto_tx = require('.');
 
 function genAccountAddress(id) {
 	var hash = crypto_tx.keccak(String('')).data;
