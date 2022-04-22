@@ -181,11 +181,11 @@ export function getPublicFrom(privateKey: Buffer, type?: KeyType) {
 	return type == KeyType.GM ? sm2.publicKeyCreate(privateKey, true): k1.publicKeyCreate(privateKey, true);
 }
 
-export function zsw_keyToString(key: Buffer, type: KeyType | string = KeyType.K1, prefix: string, encoding: IBufferEncoding = 'base58') {
-	const typeStr = typeof type == 'string' ? type: KeyType[type];
-	const digest = new Uint8Array(digestSuffixRipemd160(key, typeStr));
+export function zsw_keyToString(key: Buffer, suffix: KeyType | string = KeyType.K1, prefix: string, encoding: IBufferEncoding = 'base58') {
+	const suffixStr = typeof suffix == 'string' ? suffix: KeyType[suffix];
+	const digest = new Uint8Array(digestSuffixRipemd160(key, suffixStr));
 	const whole = new Uint8Array(key.length + 4);
-	prefix = prefix ? `${prefix}_${typeStr}_`: `${typeStr}_`;
+	prefix = String.format(prefix, suffixStr);
 	for (let i = 0; i < key.length; ++i) {
 			whole[i] = key[i];
 	}
@@ -207,6 +207,6 @@ export function zsw_parseKey(keyStr: string, encoding: IBufferEncoding = 'base58
 		type,
 		key: isPUB ? undefined: k,
 		pub,
-		pubStr: zsw_keyToString(pub, type, 'PUB'),
+		pubStr: zsw_keyToString(pub, type, 'PUB_{0}_'),
 	};
 }
