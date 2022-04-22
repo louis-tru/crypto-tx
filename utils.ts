@@ -418,7 +418,7 @@ export function isHexString(value: string, length?: number) {
 export function toBuffer(v?: string | Uint8Array | ArrayLike<number> | BN | { toArray: ()=>number[] } | number | bigint | null): Buffer {
 	var r: Buffer;
 	if (v instanceof Uint8Array) {
-		r = buffer.from(v.buffer);
+		r = buffer.from(v);
 	} else if (Array.isArray(v)) {
 		r = buffer.from(v);
 	} else if (typeof v === 'string') {

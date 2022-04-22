@@ -196,17 +196,27 @@ export function zsw_keyToString(key: Buffer, suffix: KeyType | string = KeyType.
 }
 
 export function zsw_parseKey(keyStr: string, encoding: IBufferEncoding = 'base58'): KeyDesc {
-	const m = keyStr.match(/^(PUB|PVT)_(GM|K1)_(.+)/)!;
-	somes.assert(m, errno.ERR_ZSW_PUBLIC_KEY_INVALID);
-	const key = buffer.from(m[3], encoding);
-	const type = m[2] == 'GM' ? KeyType.GM: KeyType.K1;
-	const isPUB = m[1] == 'PUB';
-	const k = isPUB ? key.slice(0, 33): key.slice(0, 32);
-	const pub = isPUB ? k: getPublicFrom(k, type);
-	return {
-		type,
-		key: isPUB ? undefined: k,
-		pub,
-		pubStr: zsw_keyToString(pub, type, 'PUB_{0}_'),
-	};
+	let m = keyStr.match(/^(PUB|PVT)_(GM|K1)_(.+)/)!;
+	if (!m) {
+		m = keyStr.match(/^EOS(.+)/)!;
+		somes.assert(m, errno.ERR_ZSW_PUBLIC_KEY_INVALID);
+		const pub = buffer.from(m[1], encoding).slice(0, 33);
+		return {
+			type: KeyType.K1,
+			pub,
+			pubStr: zsw_keyToString(pub, KeyType.K1, 'PUB_{0}_'),
+		};
+	} else {
+		const key = buffer.from(m[3], encoding);
+		const type = m[2] == 'GM' ? KeyType.GM: KeyType.K1;
+		const isPUB = m[1] == 'PUB';
+		const k = isPUB ? key.slice(0, 33): key.slice(0, 32);
+		const pub = isPUB ? k: getPublicFrom(k, type);
+		return {
+			type,
+			key: isPUB ? undefined: k,
+			pub,
+			pubStr: zsw_keyToString(pub, type, 'PUB_{0}_'),
+		};
+	}
 }
