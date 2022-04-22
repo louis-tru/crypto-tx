@@ -335,9 +335,9 @@ async function main() {
 			address: crypto.publicToAddress(publicKey_0),
 			nonce: '0x' + nonce.toString('hex'),
 			k1Key: gm.keyToString(privateKey, 'K1', 'PVT_K1_'),
-			k1Pub: gm.keyToString(publicKey_0, 'K1', 'PUB_K1_'),
+			k1Pub: gm.keyToString(ec.k1.publicKeyCreate(privateKey), 'K1', 'PUB_K1_'),
 			gmKey: gm.keyToString(privateKey, 'GM', 'PVT_GM_'),
-			gmPub: gm.keyToString(ec.gm.publicKeyCreate(publicKey_0), 'GM', 'PUB_GM_'),
+			gmPub: gm.keyToString(ec.sm2.publicKeyCreate(privateKey), 'GM', 'PUB_GM_'),
 		};
 		if (opts.json) {
 			console.log(JSON.stringify(result));
@@ -349,9 +349,9 @@ async function main() {
 			console.log('address:', result.address);
 			console.log('nonce:', result.nonce);
 			console.log('k1Key:', gm.keyToString(privateKey, 'K1', 'PVT_K1_'));
-			console.log('k1Pub:', gm.keyToString(publicKey_0, 'K1', 'PUB_K1_'));
+			console.log('k1Pub:', gm.keyToString(ec.k1.publicKeyCreate(privateKey), 'K1', 'PUB_K1_'));
 			console.log('gmKey:', gm.keyToString(privateKey, 'GM', 'PVT_GM_'));
-			console.log('gmPub:', gm.keyToString(ec.gm.publicKeyCreate(publicKey_0), 'GM', 'PUB_GM_'));
+			console.log('gmPub:', gm.keyToString(ec.sm2.publicKeyCreate(privateKey), 'GM', 'PUB_GM_'));
 		}
 	} else if (opts.C) {
 		if (!opts.p && !opts.k)
