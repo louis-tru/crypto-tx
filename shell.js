@@ -342,7 +342,7 @@ async function main() {
 			GMKey: account.zsw_keyToString(privateKey, 1, 'PVT'),
 			GMPub: account.zsw_keyToString(ec.sm2.publicKeyCreate(privateKey), 1, 'PUB'),
 			btcWIFKey: btc.getWIFKey(privateKey).toString('base58'),
-			addressBtc: btc.getAddressFromPrivateKey(privateKey).toString('base58'),
+			btcAddress: btc.getAddressFromPrivateKey(privateKey).toString('base58'),
 		};
 
 		if (opts.json) {
