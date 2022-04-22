@@ -39,6 +39,8 @@ var rng = require('somes/rng');
 var somes = require('somes').default;
 var buffer = require('somes/buffer').default;
 var keystore = require('./keystore');
+var gm = require('./gm');
+var ec = require('./ec');
 var opts = argument.options;
 var help_info = argument.helpInfo;
 var def_opts = argument.defOpts;
@@ -332,6 +334,10 @@ async function main() {
 			publicKey1: '0x' + publicKey_1.toString('hex'),
 			address: crypto.publicToAddress(publicKey_0),
 			nonce: '0x' + nonce.toString('hex'),
+			k1Key: gm.keyToString(privateKey, 'K1', 'PVT_K1_'),
+			k1Pub: gm.keyToString(publicKey_0, 'K1', 'PUB_K1_'),
+			gmKey: gm.keyToString(privateKey, 'GM', 'PVT_GM_'),
+			gmPub: gm.keyToString(ec.gm.publicKeyCreate(publicKey_0), 'GM', 'PUB_GM_'),
 		};
 		if (opts.json) {
 			console.log(JSON.stringify(result));
@@ -342,6 +348,10 @@ async function main() {
 			console.log('publicKey1:', result.publicKey1);
 			console.log('address:', result.address);
 			console.log('nonce:', result.nonce);
+			console.log('k1Key:', gm.keyToString(privateKey, 'K1', 'PVT_K1_'));
+			console.log('k1Pub:', gm.keyToString(publicKey_0, 'K1', 'PUB_K1_'));
+			console.log('gmKey:', gm.keyToString(privateKey, 'GM', 'PVT_GM_'));
+			console.log('gmPub:', gm.keyToString(ec.gm.publicKeyCreate(publicKey_0), 'GM', 'PUB_GM_'));
 		}
 	} else if (opts.C) {
 		if (!opts.p && !opts.k)

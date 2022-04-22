@@ -5,6 +5,11 @@ import {toBuffer} from './utils';
 import assert from './assert';
 import k1 from './ec';
 
+export interface Signature {
+	signature: Buffer;
+	recovery: number;
+}
+
 export type Types = 'address' | 'int256' |
 'int160' |
 'int128' |
