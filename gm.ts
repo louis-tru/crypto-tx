@@ -32,7 +32,6 @@ import buffer, {Buffer} from 'somes/buffer';
 import {sm2} from './ec';
 import {genPrivateKey} from './account';
 import { BigInteger } from 'jsbn';
-import * as hash_js from 'hash.js';
 import errno from './errno';
 import * as assert from './assert';
 
@@ -46,29 +45,6 @@ function genRandomPoint() {
 		k: new BigInteger(k.toString('hex'), 16),
 		x1: new BigInteger(x1.toString(), 10),
 	};
-}
-
-function digestSuffixRipemd160(data: Uint8Array, suffix: string) {
-	const d = new Uint8Array(data.length + suffix.length);
-	for (let i = 0; i < data.length; ++i) {
-			d[i] = data[i];
-	}
-	for (let i = 0; i < suffix.length; ++i) {
-			d[data.length + i] = suffix.charCodeAt(i);
-	}
-	return hash_js.ripemd160().update(d).digest();
-}
-
-export function keyToString(key: Buffer, suffix: string, prefix: string) {
-	const digest = new Uint8Array(digestSuffixRipemd160(key, suffix));
-	const whole = new Uint8Array(key.length + 4);
-	for (let i = 0; i < key.length; ++i) {
-			whole[i] = key[i];
-	}
-	for (let i = 0; i < 4; ++i) {
-			whole[i + key.length] = digest[i];
-	}
-	return prefix + buffer.from(whole).toString('base58');
 }
 
 export function sign(msg: Buffer, privateKey: Buffer) {

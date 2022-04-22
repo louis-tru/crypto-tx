@@ -28,15 +28,25 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-import buffer, {Buffer} from 'somes/buffer';
+import buffer, {Buffer, IBufferEncoding} from 'somes/buffer';
 import { keccak } from './keccak';
-import k1 from './ec';
+import {k1,sm2} from './ec';
 import * as utils from './utils';
-import {rng} from 'somes/rng';
+import * as hash_js from 'hash.js';
+import errno from './errno';
+import somes from 'somes';
+import {KeyType} from './sign';
 
 const EC_GROUP_ORDER = buffer.from(
 	'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141', 'hex');
 const ZERO32 = buffer.alloc(32, 0);
+
+export interface KeyDesc {
+	type: KeyType,
+	key?: Buffer,
+	pub: Buffer,
+	pubStr: string,
+}
 
 export const getRandomValues = utils.getRandomValues;
 
@@ -144,18 +154,59 @@ export function checkAddressHex(addressHex: any) {
 	return false;
 }
 
-export function sign(message: Buffer, privateKey: Buffer, options?: {
-	noncefn?: () => Buffer;
-	data?: Buffer;
-}) {
-	options = Object.assign({ noncefn: ()=>rng(32) }, options);
-	return k1.sign(message, privateKey, options);
-}
-
-export function verify(message: Buffer, signature: Buffer, publicKeyTo: Buffer, canonical?: boolean) {
+export function verifyk1(message: Buffer, signature: Buffer, publicKeyTo: Buffer, canonical?: boolean) {
 	return k1.verify(message, signature, publicKeyTo, canonical);
 }
 
-export function recover(message: Buffer, signature: Buffer, recovery: number, compressed = true) {
+export function recoverk1(message: Buffer, signature: Buffer, recovery: number, compressed = true) {
 	return k1.recover(message, signature, recovery, compressed);
+}
+
+export {sign} from './sign';
+export const verify = verifyk1;
+export const recover = recoverk1;
+
+export function digestSuffixRipemd160(data: Uint8Array, suffix: string) {
+	const d = new Uint8Array(data.length + suffix.length);
+	for (let i = 0; i < data.length; ++i) {
+			d[i] = data[i];
+	}
+	for (let i = 0; i < suffix.length; ++i) {
+			d[data.length + i] = suffix.charCodeAt(i);
+	}
+	return hash_js.ripemd160().update(d).digest();
+}
+
+export function getPublicFrom(privateKey: Buffer, type?: KeyType) {
+	return type == KeyType.GM ? sm2.publicKeyCreate(privateKey, true): k1.publicKeyCreate(privateKey, true);
+}
+
+export function zsw_keyToString(key: Buffer, type: KeyType | string = KeyType.K1, prefix: string, encoding: IBufferEncoding = 'base58') {
+	const typeStr = typeof type == 'string' ? type: KeyType[type];
+	const digest = new Uint8Array(digestSuffixRipemd160(key, typeStr));
+	const whole = new Uint8Array(key.length + 4);
+	prefix = prefix ? `${prefix}_${typeStr}_`: `${typeStr}_`;
+	for (let i = 0; i < key.length; ++i) {
+			whole[i] = key[i];
+	}
+	for (let i = 0; i < 4; ++i) {
+			whole[i + key.length] = digest[i];
+	}
+	return prefix + buffer.from(whole).toString(encoding);
+}
+
+export function zsw_parseKey(keyStr: string, encoding: IBufferEncoding = 'base58'): KeyDesc {
+	const m = keyStr.match(/^(PUB|PVT)_(GM|K1)_(.+)/)!;
+	somes.assert(m, errno.ERR_ZSW_PUBLIC_KEY_INVALID);
+	const key = buffer.from(m[3], encoding);
+	const type = m[2] == 'GM' ? KeyType.GM: KeyType.K1;
+	const isPUB = m[1] == 'PUB';
+	const k = isPUB ? key.slice(0, 33): key.slice(0, 32);
+	const pub = isPUB ? k: getPublicFrom(k, type);
+	return {
+		type,
+		key: isPUB ? undefined: k,
+		pub,
+		pubStr: zsw_keyToString(pub, type, 'PUB'),
+	};
 }

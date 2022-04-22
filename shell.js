@@ -39,7 +39,7 @@ var rng = require('somes/rng');
 var somes = require('somes').default;
 var buffer = require('somes/buffer').default;
 var keystore = require('./keystore');
-var gm = require('./gm');
+var account = require('./account');
 var ec = require('./ec');
 var btc = require('./btc');
 var opts = argument.options;
@@ -325,6 +325,7 @@ async function main() {
 		} else {
 			var privateKey = crypto.genPrivateKey();
 		}
+
 		var nonce = rng.rng(32);
 		var publicKey_0 = crypto.getPublic(privateKey, true);
 		var publicKey_1 = crypto.getPublic(privateKey, false);
@@ -335,13 +336,15 @@ async function main() {
 			publicKey1: '0x' + publicKey_1.toString('hex'),
 			address: crypto.publicToAddress(publicKey_0),
 			nonce: '0x' + nonce.toString('hex'),
-			K1Key: gm.keyToString(privateKey, 'K1', 'PVT_K1_'),
-			K1Pub: gm.keyToString(ec.k1.publicKeyCreate(privateKey), 'K1', 'PUB_K1_'),
-			GMKey: gm.keyToString(privateKey, 'GM', 'PVT_GM_'),
-			GMPub: gm.keyToString(ec.sm2.publicKeyCreate(privateKey), 'GM', 'PUB_GM_'),
+			K1Key: account.zsw_keyToString(privateKey, 0, 'PVT'),
+			K1Pub: account.zsw_keyToString(ec.k1.publicKeyCreate(privateKey), 0, 'PUB'),
+			EOS: account.zsw_keyToString(ec.k1.publicKeyCreate(privateKey), 'EOS', ''),
+			GMKey: account.zsw_keyToString(privateKey, 1, 'PVT'),
+			GMPub: account.zsw_keyToString(ec.sm2.publicKeyCreate(privateKey), 1, 'PUB'),
 			btcWIFKey: btc.getWIFKey(privateKey).toString('base58'),
 			addressBtc: btc.getAddressFromPrivateKey(privateKey).toString('base58'),
 		};
+
 		if (opts.json) {
 			console.log(JSON.stringify(result));
 		} else {
@@ -351,13 +354,15 @@ async function main() {
 			console.log('publicKey1:', result.publicKey1);
 			console.log('address:   ', result.address);
 			console.log('nonce:', result.nonce);
-			console.log('K1Key:', gm.keyToString(privateKey, 'K1', 'PVT_K1_'));
-			console.log('K1Pub:', gm.keyToString(ec.k1.publicKeyCreate(privateKey), 'K1', 'PUB_K1_'));
-			console.log('GMKey:', gm.keyToString(privateKey, 'GM', 'PVT_GM_'));
-			console.log('GMPub:', gm.keyToString(ec.sm2.publicKeyCreate(privateKey), 'GM', 'PUB_GM_'));
-			console.log('btcWIFKey: ', btc.getWIFKey(privateKey).toString('base58'));
-			console.log('btcAddress:', btc.getAddressFromPrivateKey(privateKey).toString('base58'));
+			console.log('K1Key:', result.K1Key);
+			console.log('K1Pub:', result.K1Pub);
+			console.log('EOS:  ', result.EOS);
+			console.log('GMKey:', result.GMKey);
+			console.log('GMPub:', result.GMPub);
+			console.log('btcWIFKey: ', result.btcWIFKey);
+			console.log('btcAddress:', result.btcAddress);
 		}
+
 	} else if (opts.C) {
 		if (!opts.p && !opts.k)
 			printHelp(0);
