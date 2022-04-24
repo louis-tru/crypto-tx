@@ -43,9 +43,9 @@ const ZERO32 = buffer.alloc(32, 0);
 
 export interface KeyDesc {
 	type: KeyType,
-	key?: Buffer,
-	pub: Buffer,
-	pubStr: string,
+	privKey?: Buffer,
+	publicKey: Buffer,
+	publicKeyStr: string,
 }
 
 export const getRandomValues = utils.getRandomValues;
@@ -197,16 +197,7 @@ export function zsw_keyToString(key: Buffer, suffix: KeyType | string = KeyType.
 
 export function zsw_parseKey(keyStr: string, encoding: IBufferEncoding = 'base58'): KeyDesc {
 	let m = keyStr.match(/^(PUB|PVT)_(GM|K1)_(.+)/)!;
-	if (!m) {
-		m = keyStr.match(/^EOS(.+)/)!;
-		somes.assert(m, errno.ERR_ZSW_PUBLIC_KEY_INVALID);
-		const pub = buffer.from(m[1], encoding).slice(0, 33);
-		return {
-			type: KeyType.K1,
-			pub,
-			pubStr: zsw_keyToString(pub, KeyType.K1, 'PUB_{0}_'),
-		};
-	} else {
+	if (m) {
 		const key = buffer.from(m[3], encoding);
 		const type = m[2] == 'GM' ? KeyType.GM: KeyType.K1;
 		const isPUB = m[1] == 'PUB';
@@ -214,9 +205,18 @@ export function zsw_parseKey(keyStr: string, encoding: IBufferEncoding = 'base58
 		const pub = isPUB ? k: getPublicFrom(k, type);
 		return {
 			type,
-			key: isPUB ? undefined: k,
-			pub,
-			pubStr: zsw_keyToString(pub, type, 'PUB_{0}_'),
+			privKey: isPUB ? undefined: k,
+			publicKey: pub,
+			publicKeyStr: zsw_keyToString(pub, type, 'PUB_{0}_'),
+		};
+	} else {
+		m = keyStr.match(/^EOS(.+)/)!;
+		somes.assert(m, errno.ERR_ZSW_PUBLIC_KEY_INVALID);
+		const pub = buffer.from(m[1], encoding).slice(0, 33);
+		return {
+			type: KeyType.K1,
+			publicKey: pub,
+			publicKeyStr: zsw_keyToString(pub, KeyType.K1, 'PUB_{0}_'),
 		};
 	}
 }
