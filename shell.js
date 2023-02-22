@@ -29,6 +29,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+var crypto0 = require('crypto');
 var crypto = require('./index');
 var assert = require('./assert');
 var argument = require('somes/arguments');
@@ -55,8 +56,10 @@ def_opts(['S'],             0,  '-S          cmd sign data or hash');
 def_opts(['S2'],            0,  '-S2         cmd sign Arguments From Types');
 def_opts(['R'],             0,  '-R          cmd recovery public key from signature');
 def_opts(['V'],             0,  '-V          cmd verify public key from hash or data');
-def_opts(['H'],             0,  '-H          gen data message hash keccak 256');
-def_opts(['KS'],            0,  '-KS         export keystore');
+def_opts(['H'],             0,  '-H          cmd gen data message hash keccak 256');
+def_opts(['KS'],            0,  '-KS         cmd export keystore');
+def_opts(['EA'],            0,  '-EA         cmd encrypt data from aes-256-cbc');
+def_opts(['DA'],            0,  '-DA         cmd decrypt data from aes-256-cbc');
 def_opts(['k', 'private'], '',  '-private,-k privateKey hex');
 def_opts(['p', 'public' ], '',  '-public,-p  publicKey hex');
 def_opts(['d', 'data'],    '',  '-data,-d    encrypt or decrypt data');
@@ -89,6 +92,10 @@ function printHelp(code = -1) {
 		'  crypto-tx -F -d address hex address \n');
 	process.stdout.write(
 		'  crypto-tx -KS -k privateKey -pwd passwork Export keystore \n');
+	process.stdout.write(
+		'  crypto-tx -EA -d data -pwd passwork encrypt data from aes-256-cbc \n');
+	process.stdout.write(
+		'  crypto-tx -EA -d data -pwd passwork decrypt data from aes-256-cbc \n');
 	process.stdout.write('Options:\n');
 	process.stdout.write('  ' + help_info.join('\n  ') + '\n');
 	process.exit(code);
@@ -312,6 +319,61 @@ function format() {
 	}
 }
 
+function aes256cbc_encrypt() {
+	if (!opts.d || !opts.pwd)
+		printHelp();
+	// console.log('aes256cbc_encrypt', data()+'');
+	// somes.assert(opts.pwd, 'bad argument. -pwd pwd');
+
+	let key = buffer.from(crypto.keccak(opts.pwd).data);
+	let iv = key.slice(16);
+
+	let d = data();
+	let cipher = crypto0.createCipheriv('aes-256-cbc', key, iv);
+	let firstChunk = cipher.update(d);
+	let secondChunk = cipher.final();
+	let ciphertext = buffer.concat([firstChunk, secondChunk]);
+	
+	if (opts.json) {
+		console.log({
+			plaintext: d.toString('hex'),
+			ciphertext_hex: '0x' + ciphertext.toString('hex'),
+			ciphertext_base64: ciphertext.toString('base64'),
+		});
+	} else {
+		console.log('ciphertext:', '0x' + d.toString('hex'));
+		console.log('ciphertext_hex:', '0x' + ciphertext.toString('hex'));
+		console.log('ciphertext_base64:', ciphertext.toString('base64'));
+	}
+}
+
+function aes256cbc_decrypt() {
+	if (!opts.d || !opts.pwd)
+		printHelp();
+	// console.log('aes256cbc_decrypt', data()+'');
+	// somes.assert(opts.pwd, 'bad argument. -pwd pwd');
+
+	let key = buffer.from(crypto.keccak(opts.pwd).data);
+	let iv = key.slice(16);
+
+	var cipher = crypto0.createDecipheriv('aes-256-cbc', key, iv);
+	var firstChunk = cipher.update(data());
+	var secondChunk = cipher.final();
+	let plaintext = buffer.concat([firstChunk, secondChunk]);
+	
+	if (opts.json) {
+		console.log({
+			plaintext: plaintext + '',
+			plaintext_hex: '0x' + plaintext.toString('hex'),
+			plaintext_base64: plaintext.toString('base64'),
+		});
+	} else {
+		console.log('plaintext:', plaintext+'');
+		console.log('plaintext_hex:', '0x' + plaintext.toString('hex'));
+		console.log('plaintext_base64:', plaintext.toString('base64'));
+	}
+}
+
 async function main() {
 
 	if (opts.E) {
@@ -389,6 +451,10 @@ async function main() {
 		format();
 	} else if (opts.KS) {
 		exportKeystore();
+	} else if (opts.EA) {
+		aes256cbc_encrypt();
+	} else if (opts.DA) {
+		aes256cbc_decrypt();
 	} else if (opts.H) {
 		if (!opts.d)
 			printHelp();
