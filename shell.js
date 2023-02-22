@@ -29,7 +29,6 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-var crypto0 = require('crypto');
 var crypto = require('./index');
 var assert = require('./assert');
 var argument = require('somes/arguments');
@@ -46,6 +45,7 @@ var btc = require('./btc');
 var opts = argument.options;
 var help_info = argument.helpInfo;
 var def_opts = argument.defOpts;
+var aes = require('./aes');
 
 def_opts(['G'],             0,  '-G          cmd gen private and public keys');
 def_opts(['C'],             0,  '-C          cmd convert output public key and address');
@@ -325,25 +325,13 @@ function aes256cbc_encrypt() {
 	// console.log('aes256cbc_encrypt', data()+'');
 	// somes.assert(opts.pwd, 'bad argument. -pwd pwd');
 
-	let key = buffer.from(crypto.keccak(opts.pwd).data);
-	let iv = key.slice(16);
-
-	let d = data();
-	let cipher = crypto0.createCipheriv('aes-256-cbc', key, iv);
-	let firstChunk = cipher.update(d);
-	let secondChunk = cipher.final();
-	let ciphertext = buffer.concat([firstChunk, secondChunk]);
-	
+	let json = aes.aes256cbcEncrypt(data(), opts.pwd);
 	if (opts.json) {
-		console.log({
-			plaintext: d.toString('hex'),
-			ciphertext_hex: '0x' + ciphertext.toString('hex'),
-			ciphertext_base64: ciphertext.toString('base64'),
-		});
+		console.log(json);
 	} else {
-		console.log('ciphertext:', '0x' + d.toString('hex'));
-		console.log('ciphertext_hex:', '0x' + ciphertext.toString('hex'));
-		console.log('ciphertext_base64:', ciphertext.toString('base64'));
+		console.log('plaintext:', json.plaintext);
+		console.log('ciphertext_hex:', json.ciphertext_hex);
+		console.log('ciphertext_base64:', json.ciphertext_base64);
 	}
 }
 
@@ -353,24 +341,13 @@ function aes256cbc_decrypt() {
 	// console.log('aes256cbc_decrypt', data()+'');
 	// somes.assert(opts.pwd, 'bad argument. -pwd pwd');
 
-	let key = buffer.from(crypto.keccak(opts.pwd).data);
-	let iv = key.slice(16);
-
-	var cipher = crypto0.createDecipheriv('aes-256-cbc', key, iv);
-	var firstChunk = cipher.update(data());
-	var secondChunk = cipher.final();
-	let plaintext = buffer.concat([firstChunk, secondChunk]);
-	
+	let json = aes.aes256cbcDecrypt(data(), opts.pwd);
 	if (opts.json) {
-		console.log({
-			plaintext: plaintext + '',
-			plaintext_hex: '0x' + plaintext.toString('hex'),
-			plaintext_base64: plaintext.toString('base64'),
-		});
+		console.log(json);
 	} else {
-		console.log('plaintext:', plaintext+'');
-		console.log('plaintext_hex:', '0x' + plaintext.toString('hex'));
-		console.log('plaintext_base64:', plaintext.toString('base64'));
+		console.log('plaintext:', json.plaintext);
+		console.log('plaintext_hex:', json.plaintext_hex);
+		console.log('plaintext_base64:', json.plaintext_base64);
 	}
 }
 
