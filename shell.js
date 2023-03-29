@@ -442,8 +442,9 @@ async function main() {
 		if (!opts.d)
 			printHelp();
 		else {
+			var hex = '0x' + message(opts.algorithm).toString('hex');
 			// console.log(opts.d)
-			console.log('hash:', '0x' + message(opts.algorithm).toString('hex'));
+			console.log('hash:', hex, 'byte4:', hex.slice(0,10));
 		}
 		
 	} else {
