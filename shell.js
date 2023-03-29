@@ -42,6 +42,7 @@ var keystore = require('./keystore');
 var account = require('./account');
 var ec = require('./ec');
 var btc = require('./btc');
+var sha256 = require('somes/hash/sha256').default;
 var opts = argument.options;
 var help_info = argument.helpInfo;
 var def_opts = argument.defOpts;
@@ -56,7 +57,7 @@ def_opts(['S'],             0,  '-S          cmd sign data or hash');
 def_opts(['S2'],            0,  '-S2         cmd sign Arguments From Types');
 def_opts(['R'],             0,  '-R          cmd recovery public key from signature');
 def_opts(['V'],             0,  '-V          cmd verify public key from hash or data');
-def_opts(['H'],             0,  '-H          cmd gen data message hash keccak 256');
+def_opts(['H'],             0,  '-H [-a kk256|sha256] cmd gen data message hash keccak 256');
 def_opts(['KS'],            0,  '-KS         cmd export keystore');
 def_opts(['EA'],            0,  '-EA         cmd encrypt data from aes-256-cbc');
 def_opts(['DA'],            0,  '-DA         cmd decrypt data from aes-256-cbc');
@@ -69,6 +70,8 @@ def_opts(['nonce'],        '',  '-nonce      signature 32 bytes hex nonce data o
 def_opts(['iv'],           '',  '-iv         IV 16 bytes hex');
 def_opts(['json'],          0,  '-json       convert output result to json [{0}]');
 def_opts(['pwd'],          '',  '-pwd        set keystore pawwdord');
+def_opts(['algorithm','a'],'',  '-algorithm,-a kk256|sha256 set algorithm default use sha3 keccak256');
+
 
 function printHelp(code = -1) {
 	process.stdout.write('Usage:\n');
@@ -101,10 +104,13 @@ function printHelp(code = -1) {
 	process.exit(code);
 }
 
-function message() {
+function message(algorithm) {
 	// var d = data();
 	// console.log(d + '')
-	return buffer.from(crypto.keccak(data()).data);
+	if (algorithm == 'sha256')
+		return sha256(data());
+	else
+		return buffer.from(crypto.keccak(data()).data);
 }
 
 function data() {
@@ -437,7 +443,7 @@ async function main() {
 			printHelp();
 		else {
 			// console.log(opts.d)
-			console.log('keccak256 hash:', '0x' + message().toString('hex'));
+			console.log('hash:', '0x' + message(opts.algorithm).toString('hex'));
 		}
 		
 	} else {
