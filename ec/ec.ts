@@ -30,7 +30,7 @@
 
 import utils from 'somes';
 import buffer, {Buffer} from 'somes/buffer';
-import * as BN from 'bn.js';
+import BN from '../bn1';
 import {ec as ECBase, curves} from 'elliptic';
 import errno from '../errno';
 

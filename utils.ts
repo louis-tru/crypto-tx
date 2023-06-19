@@ -32,7 +32,7 @@ import somes from 'somes';
 import * as assert from 'assert';
 import secp256k1 from './ec';
 import buffer, {Buffer} from 'somes/buffer';
-import * as BN from 'bn.js';
+import BN from './bn1';;
 import {keccak as sha3} from './keccak';
 
 if (somes.haveNode) {
@@ -292,7 +292,7 @@ export function publicToAddress(pubKey: Buffer, sanitize = false) {
 	if (sanitize && pubKey.length !== 64) {
 		pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1);
 	}
-	assert(pubKey.length === 64);
+	assert.equal(pubKey.length,64);
 	// Only take the lower 160bits of the hash
 	return buffer.from(sha3(pubKey).data.slice(-20));
 }

@@ -32,7 +32,7 @@ import somes from 'somes';
 import buffer, {Buffer} from 'somes/buffer';
 import utils from './utils';
 import fees from './fees';
-import * as BN  from 'bn.js';
+import BN from './bn1';
 //import secp256k1 from './ec';
 
 const N_DIV_2 = new BN('7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0', 16);
