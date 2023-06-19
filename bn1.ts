@@ -1,19 +1,19 @@
 
 import {IBuffer} from 'somes/buffer';
-import * as BN from 'bn.js';
+import * as BN_ from 'bn.js';
 
-declare class BN0 extends BN.BN {
+export interface BN extends BN_ {}
+
+export declare class BNConstructor extends BN_.BN {
 	constructor(
 		number: number | string | number[] | Uint8Array | Buffer | IBuffer | BN,
 		base?: number | 'hex',
-		endian?: BN.Endianness
+		endian?: BN_.Endianness
 	);
 	constructor(
 			number: number | string | number[] | Uint8Array | Buffer | IBuffer | BN,
-			endian?: BN.Endianness
+			endian?: BN_.Endianness
 	);
 }
 
-export default BN0;
-
-exports.default = BN;
+export const BN = BN_ as unknown as typeof BNConstructor;

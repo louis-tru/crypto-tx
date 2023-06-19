@@ -32,7 +32,7 @@ import somes from 'somes';
 import * as assert from 'assert';
 import secp256k1 from './ec';
 import buffer, {Buffer} from 'somes/buffer';
-import BN from './bn1';;
+import {BN} from './bn1';;
 import {keccak as sha3} from './keccak';
 
 if (somes.haveNode) {
